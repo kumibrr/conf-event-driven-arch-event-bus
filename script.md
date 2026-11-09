@@ -75,10 +75,10 @@ Ahora qué requisitos tenemos para el servidor:
 
 Finalmente, sin ser un requisito en sí, consideramos que RabbitMQ y Kafka aumentaban significativamente la complejidad de nuestra infraestructura, el equipo jamás había trabajado con estas herramientas y en lugar de acelerarnos en ese momento, nos hubiese frenado, la última razón es simeplemente que el número de usuarios no es grande y nuestro humilde setup podía con la carga que le pedíamos sobre el papel.
 
-Nos decidimos a implementar nosotros mismos un sistema de colas FIFO ligero con las siguientes características.
-1. La validación ocurre en el front, el back simplemente verifica los payloads. Cuando se modifique una validación, SIEMPRE se debe cambiar primero en el front, y hacer trickle-down a back. Así nos evitamos posibles conflictos. Se debe implementar un bounded-context para el error tracking y avisos automáticos al equipo para evitar problemas de sincronización y conciliación manual.
+Nos decidimos a implementar nosotros mismos un event-bus con las siguientes características.
+1. Validamos en el front para dar feedback inmediato al usuario y volvemos a validar en el backend antes de aplicar la operación. Ambos usan validaciones basadas en un contrato común definido con OpenAPI: Zod en frontend y Jakarta Validation en backend. En CI comprobamos que los paquetes utilicen la misma versión del contrato para reducir divergencias. El backend comprueba además que la operación sea válida con el estado actual. Si existe un conflicto, conserva la acción recibida y la deriva a conciliación, sin aplicar automáticamente el cambio solicitado. Compartir contrato reduce divergencias de validación, pero no elimina los conflictos que pueden aparecer al sincronizar acciones realizadas offline.
 2. Las operaciones de escritura no van a sobreescribir campos en la entidad que sería devueltas al backend directamente, serían eventos que debemos crear y que mandarían un payload donde irían los datos.
-3. Para ahorrar batería, todas estas operaciones de escritura se enviarían en batch. Damos una ventana de 200ms que se refresca si entra un nuevo evento para mandarlas todas juntas.
+3. Para ahorrar batería, todas estas operaciones de escritura se enviarían en batch. Damos una ventana de 200ms que se refresca si entra un nuevo evento para mandarlas todas juntas con un máximo de 5 segundos.
 4. La cola debe poder pararse y ser respetuosa: Si el teléfono se queda sin cobertura, debe dejar de intentar de mandar eventos para guardar batería y cuando se reconecte debe mandar al backend el batch, que el procesará asíncronamente sin quedar abrumado.
 
 ---
@@ -87,9 +87,12 @@ Pasos previos a implementación
 
 Antes de ponernos a implementar tenemos que permitir a nuestro modelo de datos amoldarse a lo que tenemos pensado.
 
-Como ya hemos dicho las entidades más importantes que tenemos son las de Rutas y Servicio, y ahora mismo tenemos el problema de que ha habido ocasiones en las que se ha llegado a estados inconsistentes. Por este motivo vamos a crear dos tablas o colecciones `Route_events` y `Service_events`. La clave primaria va a ser un UUID v7 (también se puede Snowflake ID) generado donde se ha creado el evento, en este caso en cualquiera de los frontends. Esto nos da dos ventajas importantes: un simple `SORT BY` nos asegura que están ordenados cronológicamente y los inserts van a ir siempre al final de base de datos, por lo que no vamos a fragmentar los B-Trees en base de datos. 
+Como ya hemos dicho, las entidades más importantes son Ruta y Servicio. Para registrar los cambios que reciben, vamos a crear dos tablas o colecciones: `Route_events` y `Service_events`. Cada evento tendrá como clave primaria un UUIDv7 generado en el frontend donde se origine. Su componente temporal favorece la localidad de las inserciones en los índices B-tree frente a identificadores completamente aleatorios. Esto no garantiza un orden cronológico global ni elimina la fragmentación, especialmente cuando llegan eventos creados por dispositivos que han estado offline.
 
-A partir de ahora nuestra fuente de la verdad es la reconstrucción de las entidades a partir de los eventos que una entidad ha tenido. No obstante, en los dispositivos móviles podemos tener patatófonos (De verdad), así que por motivos de rendimiento cuando se haga una operación de escritura, en la misma transacción además de añadir una entrada en el log se va a modificar la entidad `Route` o `Service` y cuando hagamos una lectura de la entidad vamos a omitir `Route_events` y `Service_events`. Solo los obtendremos cuando el usuario quiera consultar los eventos porque tenga una discrepancia en el panel.
+A partir de ahora, el historial de eventos será nuestra fuente de verdad: podremos reconstruir el estado de cada entidad a partir de él. Tanto ese historial como las entidades se almacenan en el backend.
+Para evitar reconstruir las entidades en cada lectura, mantendremos una proyección de su estado actual en `Route` y `Service`. Cada vez que apliquemos un evento, guardaremos el evento y actualizaremos su proyección en la misma transacción.
+
+Los frontends consultarán esas proyecciones, sin descargar ni reproducir todo el historial. Así también evitamos cargar de trabajo a los móviles, que pueden ser auténticos patatófonos. El historial solo se consultará desde el panel cuando sea necesario revisar una discrepancia.
 
 La última operación pendiente es persistir el event-bus en el evento de una caída de servicio por parte del backend. Lo último que queremos es perder datos que el usuario ya ha mandado. Nuestro método fue extremadamente simple y efectivo: crear una tabla o colección `mobile_app_events` y introducir los eventos tal cual llegan a ella.
 
@@ -103,7 +106,7 @@ Implementando el backend
 
 Pues tres, los dos primeros son obvios:
 
-El de recibir eventos es bastante sencillo. Coge la respuesta en bruto, la mete en base de datos y la guarda para ser procesada por el event-bus. La respuesta que ha sido correcta usa un HTTP 202 Accepted, ya que no vamos a asegurar que ha sido procesado de forma inmediata. La estructura será la siguiente:
+El de recibir eventos es bastante sencillo. Coge la respuesta en bruto, la mete en base de datos y la guarda para ser procesada por el event-bus. La respuesta que ha sido correcta usa un HTTP 202 Accepted, ya que no vamos a asegurar que ha sido procesado de forma inmediata. Si hubiese algún error, guardamos la petición en una dead-letter inbox para inspección manual. La estructura será la siguiente:
 ```json
 {
     "transactionId": "01a1aad1-b80d-7348-8bc7-19875207892d", // id de transacción,
@@ -113,22 +116,70 @@ El de recibir eventos es bastante sencillo. Coge la respuesta en bruto, la mete 
     "events": [
         {
             "eventId": "01a1aad3-9e4f-7239-a286-e7ab962c8c76", // id del evento
-            "kind": LOCATION_TRACKING, // Qué evento es
+            "kind": SERVICE_ARRIVAL, // Qué evento es
             "creationTimestamp": "1793867100", // Cuándo se ha creado el evento
+            "payload": {
+                "serviceId": "01a1bf98-c4da-797e-97c8-2109c2436edf"
+            },
+            "metadata": {
+                "contractVersion": "1"
+            }
+        },
+        {
+            "eventId": "01a1aad3-9e4f-7239-a286-e7ab962c8c76", // id del evento
+            "kind": SERVICE_SIGNATURE_FILLED, // Qué evento es
+            "creationTimestamp": "1793867400", // Cuándo se ha creado el evento
+            "payload": {
+                "service_id": "01a1bf98-c4da-797e-97c8-2109c2436edf",
+                "uri": "file:///storage/emulated/0/logistics_app/picture.jpg"
+            }
+            "metadata": {
+                "contractVersion": "1"
+            }
+        },
+        {
+            "eventId": "01a1aad3-9e4f-7239-a286-e7ab962c8c76", // id del evento
+            "kind": LOCATION_TRACKING, // Qué evento es
+            "creationTimestamp": "1793867600", // Cuándo se ha creado el evento
             "payload": { // data that the kind requires.
                 "latitude": -99.656900,
                 "longitude": 19.292500,
                 "height": 123,
-                "speed": 97
+                "speed": 0
+            },
+            "metadata": {
+                "contractVersion": "1"
             }
-        }
+        },
+        {
+            "eventId": "01a1aad3-9e4f-7239-a286-e7ab962c8c76", // id del evento
+            "kind": SERVICE_COMPLETED, // Qué evento es
+            "creationTimestamp": "179386603", // Cuándo se ha creado el evento
+            "payload": { // data that the kind requires.
+                "serviceId": "01a1bf98-c4da-797e-97c8-2109c2436edf",
+                "status": SERVICE_STATUS.OK,
+                "location": {
+                    "latitude": -99.656900,
+                    "longitude": 19.292500,
+                    "height": 123,
+                    "speed": 0
+                }
+            },
+            "metadata": {
+                "contractVersion": "1"
+            }
+        },
     ]
 }
 ```
 
 Una vez el evento ha sido procesado, mandamos una respuesta, ya sea a través de un canal SSE o haciendo polling y en la respuesta incluímos todos los eventos que han sido resueltos con sus respectivas resoluciones. Si una petición ha fallado, mandamos junto al id del evento el mensaje de error.
 
-Y el tercero busca resolver uno de los primeros problemas de los que ya he dejado caer cuando he hablado sobre la implementación básica es que no podemos garantizar el orden cronológico de las respuestas simplemente con el UUID v7, ya que no tenemos la garantía de que el dispositivo tenga la hora correcta. La solución más rápida y estúpida es a la vez extremadamente eficaz: implementar un pseudo-NTP. Cuando el usuario abre la app, se obtiene el timestamp del servidor, se hace una comparación con el timestamp del dispositivo teniendo en cuenta el desfase por la latencia y se guarda en un offset que aplicaremos a la hora del dispositivo cuando mandemos un evento. Este offset lo persistimos junto al timestamp en el que se ha obtenido por última vez. Así en el caso de que el usuario cierre la app seguiremos teniendo un offset con el que guiarnos. Obviamente la debilidad es que el usuario cambie de hora o de huso horario. Esto no es algo que hayamos implementado porque el caso no existe en nuestra operativa, pero hay un evento del sistema que podemos detectar. Si tiene conexión se repite la operación, y si no hay conexión a internet podemos pedirle al usuario amablemente que nos diga el tiempo de desfase que ha habido. Esto último es extremadamente nicho, pero es posible si una zona de reparto incluye territorio extra-fronterizo.
+El `creationTimestamp` nos permite registrar cuándo ocurrió una acción. Como el reloj del dispositivo puede estar desajustado, estimamos su diferencia respecto al servidor mediante una sincronización de hora simplificada. Al abrir la app, consultamos la hora del servidor y calculamos un offset teniendo en cuenta la latencia estimada de la petición.
+
+Guardamos ese offset junto al momento de la última sincronización y lo aplicamos al crear cada evento, también cuando estamos offline. Así conservamos una estimación de cuándo ocurrió la acción, independientemente de cuándo consigamos enviarla.
+
+Este mecanismo mejora la precisión de los timestamps, pero no garantiza un orden global entre dispositivos ni resuelve por sí mismo los conflictos. Además, el reloj puede desviarse o cambiar manualmente después de sincronizarlo. En nuestra implementación no detectamos esos cambios, por lo que esta sigue siendo una limitación.
 
 Una ventaja de hacerlo de esta forma es que podemos mantener la mayoría de endpoints que ya teníamos sin reescribirlo. Simplemente necesitamos mapear un evento a su método.
 
@@ -155,9 +206,31 @@ Por este motivo tenemos dos mecanismos: uno visual para indicar al usuario las t
 
 Para poder persistir localmente todas las acciones del usuario vamos a implementar un servicio `SyncService` que contendrá nuestro event-bus y por el que pasarán todas las acciones que impliquen una operación de escritura que pueda ser asíncrona. el servicio tiene una superficie bastante reducida: el método `push()` y la cola en sí `readonly queue$`
 
-*Explicar diagrama queue-flow.png* 
+---
+*Explicación diagrama queue-flow.png*
+---
 
-Una vez hecho esto, debemos ver cómo mostrar al repartidor la cola y el estado. En nuestro caso simplemente nos copiamos de los pop-ups de los airpods.
+Los productores de eventos obitenen SyncService a través de inyección de dependencias. Cuando se ejecuta una acción, antes se validan los campos necesarios para ejecutar el evento localmente y se crea el `Event`. Se llama al método `push()` del SyncEngine que recibe el evento y un callback opcional, deduplica, valida el payload otra vez con Zod y lo introduce a la cola de eventos. 
+Una vez en la cola de eventos se persiste.
+Si no hay conexión y la cola está pausada, espera hasta que vuelva la conexión. La cola no se encarga de comprobar la conexión. Hay un listener que pausa o reanuda la cola según el estado de la conexión.
+Si hay conexión cambiamos en la cola el estado de los eventos a "in-progress", se envuelven los eventos encolados en un batch de los eventos y se añaden los metadatos de la cola al batch (reintentos, versión, id del usuario, id del dispositivo, etc) y se mandan al handler.
+En el handler creamos un formData y metemos el JSON y, si tenemos archivos que han de ser mandados, los metemos también. Cambiamos el estado de los eventos a "sending" y los mandamos la petición.
+
+Si la petición falla, eliminamos el batch y reintentamos cada evento individual con una cadencia baja. 
+
+Y si sigue fallando con errores HTTP que no sean 4xx, entonces pausamos la cola, devolvemos los eventos al estado anterior y fuera de la cola habilitamos que se compruebe la conexión al servidor periódicamente hasta que vuelva y rehabilite la cola.
+
+Si son errores 400 entonces llamamos a un endpoint de "muerte" con todos los eventos para no perder el progreso e informamos que hay problemas graves y que no puede continuar con su ruta y que verifique la página de status.
+
+Si todo sale bien y recibimos un 201 Accepted, volvemos a cambiar el estado de los eventos que han sido mandados a "processing" y esperamos a la respuesta del servidor. En la respuesta vamos a recibir un JSON que contiene un array con objetos: El id del evento, el código http y mensaje de error si fuese el caso.
+
+Una vez recibida la respuesta, mapeamos cada resolución al evento y ejecutamos los callbacks.
+
+---
+*Fin explicación diagrama queue-flow.png*
+---
+
+Cuando se ha recibido una respuesta debemos mostrar al repartidor la cola y el estado de los eventos. En nuestro caso simplemente nos copiamos de los pop-ups de los airpods.
 
 Si el usuario lo toca, motramos un modal de tipo sheet con todos los eventos que ha subido. Los eventos que han salido mal que mostramos en la app móvil son únicamente los eventos que pueden ser remediados por el usuario. *SyncNotifications.vue*
 
@@ -169,6 +242,23 @@ Cuando le da click a un evento que ha fallado y cómo lo puede solucionar, lo ll
 Esto nos lleva a panel. Hay veces que el error es algo que el mismo repartidor no puede solucionar, por ejemplo, si en el panel han marcado un servicio como completado mientras el repartidor estaba offline y posteriormente al sinconizar el repartidor ha marcado una incidencia.
 
 Para ello tenemos una pantalla de conciliación. En ella el director de logística puede ver qué servicios tienen discrepancias y ver su información en detalle, junto a cada evento que se ha mandado, y así solventar el error.
+
+---
+Error handling
+---
+
+Para manejar los errores, usamos el módulo de error tracking de posthog.
+Todos los errores se reportan por defecto en la aplicación. Los errores de la cola tienen su propio canal de slack en el que se avisan inmediatamente para solventarlos. Se relacionan con los errores generados en el backend y stacktraces para tener todo el contexto de forma inmediata.
+
+En su momento el canal estaba bastante en silencio. En ese sentido tuve mucha precaución de dejarlo bien atado para no tener que despertarnos durante la madrugada. Sin embargo como me despidieron no sé como irá.
+
+---
+Cierre
+---
+Para terminar, obtuvimos un feedback muy bueno por parte de muchos repartidores. A la vez que ocurrió esto hicimos un rediseño de toda la aplicación por lo que el feedback sobre la cola quedo un poco empañado, sin embargo el consenso fue que se sentía instantánea, infinitamente más rápida que la versión anterior. 
+De hecho, habilitamos unos 6 meses antes la aplicación para algunos usuarios que querían probar la beta durante un par de semanas y cuando les comentamos que ya habíamos obtenido muchos comentarios útiles y que volverían a la versión anterior automáticamente, muchísimos se quejaron y pidieron quedarse en la beta hasta que la lanzásemos.
+
+Ya no estoy en la empresa, ya que al mes siguiente de lanzar la actualización para todo el mundo me despidieron, sin embargo me quedo con esos comentarios de "es el día y la noche".
 
 ---
 Algunos problemas que tuvimos
