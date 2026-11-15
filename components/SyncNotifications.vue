@@ -46,8 +46,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 -->
 
+<script setup>
+defineProps({ compact: Boolean })
+</script>
+
 <template>
-  <main class="demo">
+  <main class="demo" :class="{ 'demo--compact': compact }">
     <div class="notification notification--offline" role="status">
       <span class="notification__icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -244,6 +248,40 @@ SOFTWARE.
     animation: none;
     opacity: calc(1 - var(--i) * 0.07);
   }
+}
+
+.demo--compact {
+  min-height: 0;
+  padding: 0;
+  gap: 14px;
+  background: transparent;
+}
+
+.demo--compact .notification {
+  width: 100%;
+  min-height: 74px;
+  grid-template-columns: 30px minmax(0, 1fr) 24px;
+  gap: 8px;
+  padding: 12px 17px;
+  box-shadow: none;
+}
+
+.demo--compact .notification__icon,
+.demo--compact .notification__right-icon {
+  height: 30px;
+}
+
+.demo--compact .notification__title {
+  font-size: 19px;
+}
+
+.demo--compact .notification__message {
+  font-size: 17px;
+}
+
+.demo--compact .notification__title,
+.demo--compact .notification__message {
+  letter-spacing: -0.3px;
 }
 
 @media (max-width: 420px) {
