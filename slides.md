@@ -163,7 +163,9 @@ class: number-slide
 <div class="takeaway">El usuario cierra la app durante la subida: 💀</div>
 
 <!--
-Si el repartidor no tiene cobertura se guardaba la última entrega en una variable y esperábamos. Si la conexión no volvía, no se podía completar la siguiente. Esto ocurría en sótanos, almacenes o lugares remotos. Con poca cobertura, una foto podía mantener la pantalla de carga durante mucho tiempo. Si el usuario cerraba la app desde la multitarea, se perdía el progreso. Ese comportamiento explicaba parte de las inconsistencias del panel.
+Si el repartidor no tiene cobertura se guardaba la última entrega en una variable y esperábamos. Si la conexión no volvía, no se podía completar la siguiente. Esto ocurría en sótanos, almacenes o lugares remotos. Con poca cobertura, una foto podía mantener la pantalla de carga durante mucho tiempo. 
+
+Si el usuario cerraba la app desde la multitarea, se perdía el progreso. Ese comportamiento explicaba parte de las inconsistencias del panel.
 -->
 
 ---
