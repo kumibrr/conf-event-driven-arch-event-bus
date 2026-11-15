@@ -63,6 +63,11 @@ html, body, #app { background: var(--night); }
 .domain-diagram h2 { font-size: 36px; }.domain-diagram p { font-size: 18px; color: var(--quiet); }.relation { text-align: center; color: var(--acid); font-size: 22px; }
 .process-strip { display: grid; grid-template-columns: 1.3fr 1.2fr 1fr 1fr; gap: 0; font-size: 16px; color: var(--quiet); border-bottom: 1px solid var(--line); padding: 20px 0; }.process-strip span + span { border-left: 1px solid var(--line); padding-left: 20px; }
 .wait-list { margin-top: 30px; }.wait-list > div { display: grid; grid-template-columns: 45px 1fr 95px 120px; gap: 12px; align-items: center; padding: 21px 0; border-top: 1px solid var(--line); font-size: 21px; }.wait-list > div > span:first-child { color: var(--quiet); font-size: 16px; }
+.slidev-layout.delivery-day { display: flex; flex-direction: column; }
+.delivery-day h1 { flex-shrink: 0; margin-bottom: 24px; }
+.delivery-day .wait-list { display: flex; flex-direction: column; flex: 1; min-height: 0; margin-top: 8px; }
+.delivery-day .wait-list > div { flex: 1; padding: 0; }
+.delivery-day .support { flex-shrink: 0; margin-top: 20px !important; }
 .number-slide { display: flex; flex-direction: column; justify-content: center; }.number-split { grid-template-columns: 210px 1fr; align-items: center; margin-top: -30px; }.big-number { font-size: 205px; line-height: 1; letter-spacing: -.09em; }.number-split h1 { font-size: 43px; margin-bottom: 20px; }.number-split p { color: var(--quiet); font-size: 24px; }
 .boundary-diagram { display: grid; grid-template-columns: 1fr 200px 1fr; align-items: center; margin-top: 67px; }.boundary-diagram > div:not(.broken-link) { padding: 25px 0; border-block: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px; }.boundary-diagram strong { font-size: 27px; }.boundary-diagram span { color: var(--quiet); font-size: 17px; }.broken-link { color: var(--warning); text-align: center; font-size: 18px; }.boundary-diagram + .takeaway + .support { font-size: 18px; margin-top: 35px !important; }
 .requirements { gap: 36px; margin-top: 37px; }.requirements ul { padding-left: 22px; margin: 0; list-style-type: square; }.requirements li { padding: 0 0 17px 0; font-size: 20px; line-height: 1.4; }.requirements li::marker { color: var(--acid); }

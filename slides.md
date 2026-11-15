@@ -131,23 +131,26 @@ El sistema tenía tres piezas: panel, app y backend. Los servicios se introducí
 -->
 
 ---
+class: delivery-day
 ---
 
 # El día a día del repartidor.
 
 <div class="wait-list">
-<div><span>04</span><strong>Cargar el listado</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
-<div><span>01</span><strong>Iniciar ruta</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
-<div><span>02</span><strong>Abrir un servicio</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
-<div><span>03</span><strong>Completar la entrega</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
-<div><span>04</span><strong>Volver al listado</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
-<div><span>04</span><strong>Cargar el listado</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
-<div><span>04</span><strong>...</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
+<div><span>01</span><strong>Cargar el listado</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
+<div><span>02</span><strong>Iniciar ruta</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
+<div><span>03</span><strong>Abrir un servicio</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
+<div><span>04</span><strong>Completar la entrega</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
+<div><span>05</span><strong>Volver al listado</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
+<div><span>06</span><strong>Cargar el listado</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
+<div><strong>...</strong></div>
 </div>
 
 <p class="support">Cada acción esperaba al servidor</p>
 
 <!--
+Ahora vamos a ver cómo era la experiencia de un repartidor.
+
 La lista inicial cargaba solo algunos campos del servicio. Iniciar la ruta cambiaba su estado y recalculaba los ETA. Abrir el servicio cargaba todos los datos. Al completar, el usuario sobreescribía campos de la entidad y mandaba el resultado al backend, que validaba y recalculaba de nuevo. Volver al listado también implicaba una carga. La UI esperaba la respuesta de cada petición HTTP a Spring Boot antes de dejar continuar. Las peticiones no bloqueaban el hilo de JavaScript: el bloqueo era del flujo de trabajo del usuario.
 -->
 
@@ -157,10 +160,10 @@ class: number-slide
 
 <div class="split number-split"><div class="big-number warning-text">1</div><div><h1>entrega offline</h1><p>Después, el repartidor quedaba bloqueado hasta recuperar la conexión.</p></div></div>
 
-<div class="takeaway">Si cerraba la app durante una subida, podía perder los datos</div>
+<div class="takeaway">El usuario cierra la app durante la subida: 💀</div>
 
 <!--
-Sin cobertura guardábamos la última entrega en una variable y esperábamos. Si la conexión no volvía, no se podía completar la siguiente. Esto ocurría en sótanos, almacenes o lugares remotos. Con poca cobertura, una foto podía mantener la pantalla de carga durante mucho tiempo. Si el usuario cerraba la app desde la multitarea, se perdía el progreso. Ese comportamiento explicaba parte de las inconsistencias del panel.
+Si el repartidor no tiene cobertura se guardaba la última entrega en una variable y esperábamos. Si la conexión no volvía, no se podía completar la siguiente. Esto ocurría en sótanos, almacenes o lugares remotos. Con poca cobertura, una foto podía mantener la pantalla de carga durante mucho tiempo. Si el usuario cerraba la app desde la multitarea, se perdía el progreso. Ese comportamiento explicaba parte de las inconsistencias del panel.
 -->
 
 ---
