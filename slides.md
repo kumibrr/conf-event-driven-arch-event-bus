@@ -133,14 +133,19 @@ El sistema tenía tres piezas: panel, app y backend. Los servicios se introducí
 ---
 ---
 
-# Cada acción esperaba al servidor
+# El día a día del repartidor.
 
 <div class="wait-list">
+<div><span>04</span><strong>Cargar el listado</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
 <div><span>01</span><strong>Iniciar ruta</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
 <div><span>02</span><strong>Abrir un servicio</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
 <div><span>03</span><strong>Completar la entrega</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
 <div><span>04</span><strong>Volver al listado</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
+<div><span>04</span><strong>Cargar el listado</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
+<div><span>04</span><strong>...</strong><code>HTTP</code><span class="warning-text">esperar</span></div>
 </div>
+
+<p class="support">Cada acción esperaba al servidor</p>
 
 <!--
 La lista inicial cargaba solo algunos campos del servicio. Iniciar la ruta cambiaba su estado y recalculaba los ETA. Abrir el servicio cargaba todos los datos. Al completar, el usuario sobreescribía campos de la entidad y mandaba el resultado al backend, que validaba y recalculaba de nuevo. Volver al listado también implicaba una carga. La UI esperaba la respuesta de cada petición HTTP a Spring Boot antes de dejar continuar. Las peticiones no bloqueaban el hilo de JavaScript: el bloqueo era del flujo de trabajo del usuario.
