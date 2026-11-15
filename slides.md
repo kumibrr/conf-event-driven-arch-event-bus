@@ -45,9 +45,8 @@ class: statement
 
 <!--
 Tras la cresta de la ola empezó a surgir un problema: el churn.
-Los clientes se iban tan frustrados que algunos llegaban incluso a rechazar por completo la digitalización de su logística incluso con otras soluciones.
 
-Empezaron las preguntas incómodas porque no solo perdíamos clientes frente a la competencia. El nivel de frustración del usuario era extremo. Preguntamos a usuarios, revisamos el producto y conectamos el feedback externo con lo que el equipo encontraba cada día.
+Empezaron las preguntas incómodas, porque no es que perdiésemos esos clientes por la competencia: el nivel de frustración del usuario era extremo, tanto que algunos directamente rechazaban la digitalización de su logística.
 -->
 
 ---
@@ -171,16 +170,16 @@ Si el usuario cerraba la app desde la multitarea, se perdía el progreso. Ese co
 ---
 ---
 
-# La conexión fallaba antes del broker
+# El fallo estaba entre móvil y backend
 
-<div class="boundary-diagram"><div><strong>App móvil</strong><span>La acción nace aquí</span></div><div class="broken-link">conexión<br>interrumpida</div><div><strong>Backend</strong><span>El broker vive aquí</span></div></div>
+<div class="boundary-diagram"><div><strong>App móvil</strong><span>La acción nace aquí</span></div><div class="broken-link">conexión<br>interrumpida</div><div><strong>Backend</strong><span>La información llega aquí</span></div></div>
 
 <div class="takeaway">Necesitábamos persistencia en ambos extremos</div>
 
-<p class="support">Kafka o RabbitMQ no resuelven por sí solos el tramo entre móvil y backend.</p>
+<p class="support">Consideramos Kafka y RabbitMQ como opciones de mensajería en el backend.</p>
 
 <!--
-La primera tentación era introducir RabbitMQ o Kafka. Son herramientas capaces de resolver mensajería una vez la información llega al backend, pero el fallo que sufría el repartidor ocurría antes. Necesitábamos que el móvil siguiera trabajando sin conexión y que el backend pudiera recibir la sincronización de muchos clientes tras una caída. El problema tenía dos extremos.
+Valoramos RabbitMQ y Kafka como opciones para la mensajería del backend. No los incorporamos a la infraestructura: añadían complejidad y el equipo no tenía experiencia con ellos. El fallo de conexión ocurría entre el móvil y el servidor. Necesitábamos una solución en ambos extremos: que el repartidor pudiera seguir trabajando sin conexión y que el backend almacenase las peticiones para procesarlas en segundo plano. Finalmente construimos nuestro propio event-bus.
 -->
 
 ---
