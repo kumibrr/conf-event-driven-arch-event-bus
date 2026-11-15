@@ -1,6 +1,6 @@
 ---
 theme: default
-title: Del CRUD al tiempo real
+title: Del CRUD real-time
 titleTemplate: '%s · Night terminal'
 info: |
   Caso práctico de una app de reparto con una cola de eventos persistida.
@@ -23,30 +23,31 @@ exportFilename: del-crud-al-tiempo-real
 mdc: false
 ---
 
-<div class="command">$ sync.push(event)</div>
-
-# Del CRUD al<br>tiempo <span class="accent">real_</span>
+# Del CRUD al<br>real-<span class="accent">time</span>
 
 <div class="cover-subtitle">Una app de reparto que funciona sin cobertura</div>
 
 <div class="cover-bottom">Un caso real de arquitectura orientada a eventos</div>
 
 <!--
-Esta historia empieza con un problema de producto: el churn. Los clientes se iban tan frustrados que algunos rechazaban digitalizar su logística, incluso con otra solución. La charla sigue nuestro razonamiento al investigar esa frustración, diseñar una cola de eventos y cambiar la experiencia del repartidor. No es una receta universal de infraestructura. Es un caso concreto en una aplicación con unos cinco años de historia.
+ La charla sigue nuestro razonamiento a la hora de implementarla para solucionar frustraciones que nuestros clientes tenían. No estoy dando una receta universal de infraestructura. Es un caso concreto de una aplicación de reparto. 
+ 
+ Esta historia empieza en una startup con cinco años que había vivido el pico de la promoción de la digitalización.
 -->
 
 ---
 class: statement
 ---
 
-<div class="command">$ product.health()</div>
-
 # Los clientes<br>se estaban <span class="warning-text">yendo</span>
 
 <div class="statement-sub">Algunos acababan rechazando la digitalización de su logística</div>
 
 <!--
-Al principio eran anécdotas. Cuando se repitieron, empezaron las preguntas incómodas. No solo perdíamos clientes frente a la competencia. La frustración llegaba al punto de rechazar cualquier nueva implantación. Preguntamos a usuarios, revisamos el producto y conectamos el feedback externo con lo que el equipo encontraba cada día.
+Tras la cresta de la ola empezó a surgir un problema: el churn.
+Los clientes se iban tan frustrados que algunos llegaban incluso a rechazar por completo la digitalización de su logística incluso con otras soluciones.
+
+Empezaron las preguntas incómodas porque no solo perdíamos clientes frente a la competencia. El nivel de frustración del usuario era extremo. Preguntamos a usuarios, revisamos el producto y conectamos el feedback externo con lo que el equipo encontraba cada día.
 -->
 
 ---
@@ -73,28 +74,26 @@ Habíamos diseñado el producto para los directores de logística y para los rep
 <div class="terminal-output">
 <div><span class="warning-text">[config]</span> Desarrollos a medida para los primeros clientes</div>
 <div><span class="warning-text">[flags] </span> Dependencias e incompatibilidades poco visibles</div>
-<div><span class="warning-text">[docs]  </span> El nombre de una flag era casi toda la documentación</div>
+<div><span class="warning-text">[docs]  </span> El nombre de una flag era toda la documentación que había</div>
 <div><span class="warning-text">[bugs]  </span> Cada combinación añadía complejidad</div>
 </div>
 
 <div class="takeaway">No conocíamos bien el producto que habíamos construido</div>
 
 <!--
-Las concesiones iniciales tenían sentido: adaptar el producto a grandes clientes ayudaba a arrancar. Al crecer, las combinaciones de módulos y ajustes hicieron el producto frágil. Una persona no podía conocer toda la base de código. Las flags ni siquiera describían siempre el comportamiento real. Nos repartimos su investigación para reconstruir un árbol de dependencias y decidir cómo queríamos que funcionase la aplicación.
+Las concesiones iniciales tenían sentido: adaptar el producto a grandes clientes ayudó a arrancar. Sin embargo al crecer las combinaciones de módulos y ajustes hicieron el producto frágil y las flags ni siquiera describían el comportamiento real. Nos repartimos su investigación para reconstruir un árbol de dependencias y decidir cómo queríamos que funcionase la aplicación.
 -->
 
 ---
 class: statement
 ---
 
-<div class="command">$ diagnosis</div>
-
 # Necesitábamos<br><span class="accent">primitivos sólidos</span>
 
 <div class="statement-sub">Menos formas de hackear el producto.<br>Menos fricción al registrar cada entrega.</div>
 
 <!--
-Concluimos que no conocíamos bien el producto, que era frágil y que cada persona lo hacía funcionar a su manera. Simplificar significaba construir funcionalidades sobre piezas fiables. Los repartidores eran la base del sistema: ellos registraban la información. Hacer su trabajo más fácil mejoraba el producto para todos.
+Llegamos a conclusión de que no conocíamos el producto, que era frágil y que cada persona lo hacía funcionar a su manera. Simplificar significaba construir funcionalidades sobre piezas fiables. Los repartidores eran la base del sistema: ellos registraban la información. Hacer su trabajo más fácil mejoraba el producto para todos.
 -->
 
 ---
@@ -103,15 +102,15 @@ Concluimos que no conocíamos bien el producto, que era frágil y que cada perso
 # La app ya estaba en obras
 
 <div class="upgrade-list">
-<div><span>Angular</span><strong>7</strong><span class="separator">a</span><strong class="accent">20</strong></div>
-<div><span>Cordova</span><strong></strong><span class="separator">a</span><strong class="accent">Capacitor 7</strong></div>
-<div><span>Ionic</span><strong>3</strong><span class="separator">a</span><strong class="accent">7</strong></div>
+<p>Angular 7 a <strong class="accent">Angular 20</strong></p>
+<p>Cordova a <strong class="accent">Capacitor 7</strong></p>
+<p>Ionic 3 a <strong class="accent">Ionic 7</strong></p>
 </div>
 
-<p class="support">La migración nos había obligado a conocer sus problemas técnicos a fondo.</p>
+<p class="support">Rediseñamos la app. Aquí nos centramos en completar entregas sin una buena conexión.</p>
 
 <!--
-En ese momento yo estaba actualizando la aplicación móvil de Angular 7 a Angular 20, de Cordova a Capacitor 7 y de Ionic 3 a Ionic 7. Esa migración me había dado bastante contexto sobre las limitaciones técnicas. La investigación del producto completó ese conocimiento: saber cómo estaba construido no bastaba para saber qué necesitaban sus usuarios.
+En ese momento yo estaba actualizando la aplicación móvil de Angular 7 a Angular 20, de Cordova a Capacitor 7 y de Ionic 3 a Ionic 7. Esa migración me había dado bastante contexto sobre las limitaciones técnicas. La investigación del producto completó ese conocimiento y dio paso al rediseño de la aplicación desde cero. De todos los problemas que resolvimos, aquí nos centramos en uno: completar una entrega dependía de tener una buena conexión.
 -->
 
 ---
@@ -120,7 +119,7 @@ En ese momento yo estaba actualizando la aplicación móvil de Angular 7 a Angul
 # Ruta y servicio
 
 <div class="domain-diagram">
-<div><h2>Ruta</h2><p>La jornada de reparto</p></div><div class="relation">N : N</div><div><h2>Servicio</h2><p>La entrega que hay que ejecutar</p></div>
+<div><h2>Ruta</h2><p>La jornada de reparto</p></div><div class="relation">N : N</div><div><h2>Servicio</h2><p>Cada trabajo de reparto que debe realizar el repartidor</p></div>
 </div>
 
 <div class="process-strip"><span>Panel / API / Excel</span><span>Creación de rutas</span><span>Asignación</span><span>App móvil</span></div>
@@ -128,7 +127,7 @@ En ese momento yo estaba actualizando la aplicación móvil de Angular 7 a Angul
 <p class="support">Un servicio puede volver a otra ruta si no se entrega el primer día.</p>
 
 <!--
-El sistema tenía tres piezas: panel, app y backend. Los servicios se introducían manualmente, por Excel o por API. Se creaban rutas y el backend asignaba servicios. Ruta y Servicio concentran gran parte de la lógica de negocio del móvil. Su relación era muchos a muchos, porque una entrega fallida podía reaparecer en una ruta posterior. El móvil consultaba la jornada con kilómetros y tiempos estimados.
+El sistema tenía tres piezas: panel, app y backend. Los servicios se introducían manualmente, por Excel o por API. Se creaban rutas y el backend asignaba servicios. Ruta y Servicio concentran gran parte de la lógica de negocio del móvil. Su relación era muchos a muchos, porque una entrega fallida podía reaparecer en una ruta posterior.
 -->
 
 ---
@@ -144,7 +143,7 @@ El sistema tenía tres piezas: panel, app y backend. Los servicios se introducí
 </div>
 
 <!--
-La lista inicial cargaba solo algunos campos del servicio. Iniciar la ruta cambiaba su estado y recalculaba los ETA. Abrir el servicio cargaba todos los datos. Al completar, el usuario sobreescribía campos de la entidad y mandaba el resultado al backend, que validaba y recalculaba de nuevo. Volver al listado también implicaba una carga. El funcionamiento era simple: llamadas HTTP síncronas contra Spring Boot, con una pantalla de espera entre acciones.
+La lista inicial cargaba solo algunos campos del servicio. Iniciar la ruta cambiaba su estado y recalculaba los ETA. Abrir el servicio cargaba todos los datos. Al completar, el usuario sobreescribía campos de la entidad y mandaba el resultado al backend, que validaba y recalculaba de nuevo. Volver al listado también implicaba una carga. La UI esperaba la respuesta de cada petición HTTP a Spring Boot antes de dejar continuar. Las peticiones no bloqueaban el hilo de JavaScript: el bloqueo era del flujo de trabajo del usuario.
 -->
 
 ---
@@ -210,8 +209,6 @@ No descartamos esas herramientas por sus capacidades. El equipo no había trabaj
 ---
 class: statement
 ---
-
-<div class="command">$ write.model</div>
 
 # Cada escritura<br>se convierte en<br><span class="accent">un evento</span>
 
@@ -290,8 +287,6 @@ El componente temporal de UUIDv7 favorece la localidad de las inserciones en un 
 class: ack-slide
 ---
 
-<div class="command">$ backend.accept(batch)</div>
-
 # <span class="accent">202</span> Accepted
 
 <p class="ack-definition">El backend ha persistido la recepción.<br>El procesamiento continúa después.</p>
@@ -299,7 +294,44 @@ class: ack-slide
 <div class="takeaway">Recibido y procesado son dos momentos distintos</div>
 
 <!--
-Antes de confirmar la recepción guardamos el lote recibido en mobile_app_events, un almacenamiento central compartido por los nodos. Después puede procesarse de forma asíncrona. Así una caída de un nodo no implica perder los datos ya recibidos. El guion usa 202 Accepted en la sección del backend y 201 Accepted en un pasaje del frontend. La presentación unifica ambos como 202 Accepted, coherente con la aceptación asíncrona descrita. Si hay un error que requiere inspección, la petición se conserva en una dead-letter inbox.
+Antes de confirmar la recepción guardamos el lote recibido en mobile_app_events, un almacenamiento central compartido por los nodos. Después puede procesarse de forma asíncrona. Así una caída de un nodo no implica perder los datos ya recibidos. Si hay un error que requiere inspección, la petición se conserva en una dead-letter inbox.
+-->
+
+---
+---
+
+# Dos endpoints y un canal de resultados
+
+<div class="server-flow endpoint-flow">
+<div><span>01 / endpoint</span><h2>Recibir</h2><code>lote de eventos</code><p>Persistir y responder con HTTP 202</p></div>
+<div><span>02 / endpoint</span><h2>Consultar</h2><code>estado de eventos</code><p>Recuperar una resolución que no llegó</p></div>
+<div><span>canal</span><h2>Comunicar</h2><code>resultado final</code><p>SSE, polling o Firebase Cloud Messaging</p></div>
+</div>
+
+<div class="takeaway">La recepción del lote y la resolución de sus eventos tienen contratos distintos</div>
+
+<!--
+Necesitamos dos endpoints para recibir y consultar eventos, además de un mecanismo para comunicar las resoluciones. La entrada guarda la petición antes de responder 202. La consulta recupera el estado de los eventos cuando el móvil no ha recibido alguna resolución. Para comunicar el resultado podemos usar SSE, polling o Firebase Cloud Messaging, mi opción favorita para dispositivos móviles. No son tres endpoints obligatorios ni se asume que todos esos transportes se utilicen a la vez. Cada resolución incluye eventId, código HTTP y mensaje de error si corresponde.
+-->
+
+---
+---
+
+# eventId es la clave de idempotencia
+
+<table class="idempotency-table">
+<thead><tr><th>eventId</th><th>Contenido</th><th>Acción del backend</th></tr></thead>
+<tbody>
+<tr><td>Nuevo</td><td>Evento recibido</td><td>Procesar el evento</td></tr>
+<tr><td>Ya existe</td><td>Igual</td><td class="accent">Ignorar el duplicado</td></tr>
+<tr><td>Ya existe</td><td>Distinto</td><td class="warning-text">Alarma en Slack</td></tr>
+</tbody>
+</table>
+
+<div class="takeaway">Una acción conserva su eventId aunque vuelva a enviarse</div>
+
+<!--
+Si perdemos la respuesta, no sabemos por ese hecho si el evento llegó o no. Al reenviarlo, el eventId permite reconocer la misma acción en el backend. Cuando ya existe ese identificador, comparamos el contenido: si el evento es el mismo, ignoramos el duplicado. Si el mismo eventId aparece con otro contenido, activamos una alarma en Slack para investigarlo. Hasta donde pude comprobar, ese último caso no llegó a ocurrir. La idempotencia aquí descrita se basa en la identidad y la comparación del evento, no en asumir que la red entrega una sola vez.
 -->
 
 ---
@@ -310,13 +342,13 @@ Antes de confirmar la recepción guardamos el lote recibido en mobile_app_events
 <div class="server-flow">
 <div><span>01</span><h2>Persistir</h2><code>mobile_app_events</code><p>Confirmar con HTTP 202</p></div>
 <div><span>02</span><h2>Procesar</h2><code>evento + proyección</code><p>Validar el estado actual</p></div>
-<div><span>03</span><h2>Resolver</h2><code>eventId + resultado</code><p>Notificar por SSE o polling</p></div>
+<div><span>03</span><h2>Resolver</h2><code>eventId + resultado</code><p>Comunicar la resolución final</p></div>
 </div>
 
 <div class="takeaway">Cada evento se mapea a una operación que ya existía</div>
 
 <!--
-La entrada conserva la petición y el bus la procesa después. Para cada evento aplicable se guarda el historial y se actualiza la proyección. Una acción conflictiva se conserva para conciliación. El resultado llega al cliente por SSE o polling, asociado al eventId y con código y mensaje si hubo un error. Podemos reutilizar la mayoría de la lógica existente: el adaptador de eventos llama a sus métodos. Los tres contratos necesarios son recepción, consulta o canal de resultados y consulta de hora. El guion no fija sus rutas HTTP, así que no inventamos nombres de endpoints.
+La entrada conserva la petición y el bus la procesa después. Para cada evento aplicable se guarda el historial y se actualiza la proyección. Una acción conflictiva se conserva para conciliación. La resolución contiene el eventId, el código HTTP y un mensaje de error si corresponde. Podemos comunicarla por SSE, polling o Firebase Cloud Messaging, mi opción favorita para dispositivos móviles. La consulta permite recuperar resultados que el dispositivo no haya recibido. Reutilizamos la mayoría de la lógica existente: el adaptador de eventos llama a sus métodos.
 -->
 
 ---
@@ -338,14 +370,29 @@ Al abrir la app consultamos la hora del servidor y estimamos la diferencia con e
 class: statement
 ---
 
-<div class="command">$ delivery.complete()</div>
-
 # Completar.<br><span class="accent">Seguir repartiendo.</span>
 
 <div class="statement-sub">La UI responde después de guardar la acción localmente.<br>La sincronización continúa en segundo plano.</div>
 
 <!--
 Hasta ahora solo hemos preparado el backend. El repartidor todavía no percibe ninguna mejora. Volvamos al momento en que pulsa Completar: lo que necesita es ver la entrega completada y su siguiente destino, con o sin cobertura. La UI optimista anticipa el resultado, como un like. En este caso además tenemos que conservar la acción si cierra la app. La secuencia deseada es validar, persistir y permitir continuar, mientras se comunica que falta sincronizar. Los fallos no siempre se pueden revertir sin más: algunos requieren corrección o conciliación.
+-->
+
+---
+---
+
+# Los datos también deben estar offline
+
+<div class="server-flow offline-reads">
+<div><span>01</span><h2>Consultar</h2><p>Al iniciar la app, obtener los servicios de ese día</p></div>
+<div><span>02</span><h2>Guardar</h2><p>Conservar el listado en el dispositivo</p></div>
+<div><span>03</span><h2>Refrescar</h2><p>Actualizar periódicamente los datos locales</p></div>
+</div>
+
+<div class="takeaway">La cola conserva las escrituras. El listado local permite disponer de los datos.</div>
+
+<!--
+La UI optimista y la cola de escrituras no bastan para disponer de la información sin conexión. Al iniciar la aplicación comprobamos qué servicios tiene el usuario para ese día y guardamos el listado localmente. Lo refrescamos periódicamente. Separamos así dos necesidades: tener los datos disponibles para trabajar y conservar las acciones pendientes de sincronizar. Este mecanismo no implica descargar todo el historial de eventos ni garantiza que pueda arrancarse con datos de una jornada que nunca se haya descargado.
 -->
 
 ---
@@ -405,10 +452,27 @@ Agrupamos las escrituras en lotes. Esperamos 200 milisegundos y renovamos la ven
 
 <div class="state-list"><div><code>in-progress</code><span>La cola prepara y agrupa los eventos</span></div><div><code>sending</code><span>El handler está enviando el lote</span></div><div><code>processing</code><span>El servidor ha respondido 202</span></div><div><code class="accent">OK / FAIL</code><span>Llega la resolución de cada evento</span></div></div>
 
-<div class="takeaway">La respuesta del servidor se correlaciona por eventId</div>
+<div class="takeaway">HTTP 202 deja los eventos en processing hasta su resolución final</div>
 
 <!--
-El guion distingue in-progress al preparar el lote, sending al enviarlo y processing cuando el servidor acepta la recepción. Después llega el resultado asíncrono. Correlacionamos cada resolución con su evento y ejecutamos los callbacks. No confundimos una respuesta HTTP de aceptación con la aplicación de la operación. Tampoco usamos el orden de llegada de las respuestas como identidad.
+El guion distingue in-progress al preparar el lote, sending al enviarlo y processing cuando el servidor acepta la recepción. Después llega el resultado asíncrono. Correlacionamos cada resolución con su evento, volvemos a persistir el estado y ejecutamos los callbacks. No confundimos una respuesta HTTP de aceptación con la aplicación de la operación. Tampoco usamos el orden de llegada de las respuestas como identidad.
+-->
+
+---
+---
+
+# La resolución también se persiste
+
+<div class="server-flow resolution-flow">
+<div><span>01</span><h2>Relacionar</h2><code>eventId</code><p>Encontrar el evento de cada resolución</p></div>
+<div><span>02</span><h2>Persistir</h2><code>estado de la cola</code><p>Guardar el resultado recibido</p></div>
+<div><span>03</span><h2>Notificar</h2><code>callbacks</code><p>Comunicar la resolución a sus consumidores</p></div>
+</div>
+
+<div class="takeaway">Primero se guarda el estado resuelto. Después se ejecutan los callbacks.</div>
+
+<!--
+Una vez recibida la respuesta final, mapeamos cada resolución al evento, volvemos a persistir el estado y ejecutamos los callbacks. La persistencia no termina al encolar o enviar: también hay que conservar el resultado del procesamiento. Así distinguimos el evento enviado, el aceptado y el que ya tiene una resolución guardada localmente. El mecanismo de consulta cubre los casos en que esa resolución no llega al dispositivo.
 -->
 
 ---
@@ -419,7 +483,7 @@ El guion distingue in-progress al preparar el lote, sending al enviarlo y proces
 <div class="recovery-list"><div><strong>Falla el lote</strong><p>Deshacer el agrupamiento y reintentar eventos individualmente, con baja cadencia.</p></div><div><strong>Persiste un fallo de red o servidor</strong><p>Pausar la cola. Comprobar disponibilidad fuera de ella y reanudar después.</p></div><div><strong>La petición devuelve 400</strong><p>Conservar el progreso por una vía de emergencia y avisar del problema grave.</p></div></div>
 
 <!--
-Estas son las decisiones que describe el guion. Ante un fallo del lote, deshacemos el agrupamiento de transporte, no borramos las acciones persistidas. Reintentamos individualmente para aislar problemas. Si siguen los fallos de conexión o del servidor, pausamos y dejamos que un mecanismo externo compruebe disponibilidad. El caso 400 se trata como un error grave: se manda la información a un endpoint de emergencia para inspección y se informa al usuario de que no puede continuar y debe verificar el estado del servicio. No extendemos esa regla a todos los 4xx ni inventamos una política para cada código. El diagrama auxiliar queue-flow.png describe otra política de reintento; aquí prevalece script.md.
+Estas son las decisiones que describe el guion. Ante un fallo del lote, deshacemos el agrupamiento de transporte, no borramos las acciones persistidas. Reintentamos individualmente para aislar problemas. Si siguen los fallos de conexión o del servidor, pausamos y dejamos que un mecanismo externo compruebe disponibilidad. El caso 400 se trata como un error grave: se manda la información a un endpoint de emergencia para inspección y se informa al usuario de que no puede continuar y debe verificar el estado del servicio. No extendemos esa regla a todos los 4xx ni inventamos una política para cada código. Los eventos siguen persistidos aunque cambie su agrupamiento para el transporte.
 -->
 
 ---
@@ -477,34 +541,19 @@ En el panel hay una pantalla de conciliación. El director puede ver qué servic
 ---
 ---
 
-# Una actualización borraba el formulario
-
-<div class="split incident"><div><div class="index warning-text">[problema]</div><h2>La ruta cambia<br>mientras escribes</h2><p>Se reordena el listado y el detalle salta a otro servicio.</p></div><div><div class="index accent">[solución]</div><h2>Fijar el servicio<br>que se está editando</h2><p>Las actualizaciones respetan la identidad de ese servicio.</p></div></div>
-
-<div class="takeaway">Recibir datos nuevos no debe destruir el trabajo en curso</div>
-
-<!--
-Este fue uno de los problemas concretos que aparecieron. Mientras el repartidor completaba un servicio, una actualización asíncrona cambiaba el orden de los servicios. La pantalla podía cambiar de entidad y borrar lo rellenado. La solución consistió en guardar qué servicio estaba editando al entrar en su detalle y respetar esa identidad cuando llegaban actualizaciones. La selección debe representar el servicio, no su posición accidental en el listado.
--->
-
----
----
-
 # Los fallos también necesitan trazabilidad
 
-<div class="observability"><div><span>01</span><h2>PostHog</h2><p>Error tracking por defecto en la aplicación</p></div><div><span>02</span><h2>Canal de cola</h2><p>Avisos inmediatos en un canal dedicado de Slack</p></div><div><span>03</span><h2>Contexto</h2><p>Errores del backend y stacktraces relacionados</p></div></div>
+<div class="observability"><div><span>01</span><h2>PostHog</h2><p>Error tracking por defecto en la aplicación</p></div><div><span>02</span><h2>Canal de cola</h2><p>Avisos de cola, payloads malformados y colisiones de eventId</p></div><div><span>03</span><h2>Contexto</h2><p>Errores del backend y trazas de ejecución relacionadas</p></div></div>
 
 <div class="takeaway">Conectar la acción del usuario con el fallo que hay que investigar</div>
 
 <!--
-Usábamos el error tracking de PostHog. Los errores de la cola tenían un canal propio en Slack y se relacionaban con los errores y stacktraces del backend. El objetivo era tener contexto para resolverlos sin reconstruir toda la historia manualmente. En ese momento el canal estaba bastante en silencio. Ya no trabajo allí y no conozco su comportamiento posterior: no presento ese silencio como una garantía permanente de fiabilidad.
+Usábamos el seguimiento de errores de PostHog. Los errores de la cola tenían un canal propio en Slack y se relacionaban con los errores y trazas de ejecución del backend. Entre los avisos estaban los payloads malformados y los eventos con el mismo eventId pero distinto contenido. El objetivo era disponer de todo el contexto para investigar el fallo sin reconstruir la historia manualmente.
 -->
 
 ---
 class: statement
 ---
-
-<div class="command">$ feedback.read()</div>
 
 # Querían quedarse<br>en <span class="accent">la beta</span>
 
@@ -518,13 +567,11 @@ Unos seis meses antes del lanzamiento general dimos acceso a una beta a usuarios
 class: closing
 ---
 
-<div class="command">$ delivery.next()</div>
-
 # «Es el día<br>y <span class="accent">la noche</span>»
 
 <div class="closing-sub">El repartidor puede seguir trabajando.<br>El sistema conserva y sincroniza sus acciones.</div>
 
-<div class="cover-bottom">Preguntas<span class="accent">_</span></div>
+<div class="cover-bottom">Preguntas</div>
 
 <!--
 Un mes después del lanzamiento general dejé de trabajar en la empresa, así que no conozco cómo evolucionó el sistema después. Me quedo con los comentarios de los repartidores: era el día y la noche. La arquitectura importó porque cambió una acción cotidiana. El usuario podía seguir trabajando, sabiendo qué quedaba por sincronizar, y el equipo podía investigar qué había pasado. Este es el cierre de la charla. Las diapositivas siguientes son material de apoyo para preguntas.
@@ -534,7 +581,38 @@ Un mes después del lanzamiento general dejé de trabajar en la empresa, así qu
 class: appendix
 ---
 
-<div class="command">$ appendix.batch</div>
+# Una actualización borraba el formulario
+
+<div class="split incident"><div><div class="index warning-text">[problema]</div><h2>La ruta cambia<br>mientras escribes</h2><p>Se reordena el listado y el detalle salta a otro servicio.</p></div><div><div class="index accent">[solución]</div><h2>Fijar el servicio<br>que se está editando</h2><p>Las actualizaciones respetan la identidad de ese servicio.</p></div></div>
+
+<div class="takeaway">Recibir datos nuevos no debe destruir el trabajo en curso</div>
+
+<!--
+Este fue uno de los problemas concretos que aparecieron. Mientras el repartidor completaba un servicio, una actualización asíncrona cambiaba el orden de los servicios. La pantalla podía cambiar de entidad y borrar lo rellenado. La solución consistió en guardar qué servicio estaba editando al entrar en su detalle y respetar esa identidad cuando llegaban actualizaciones. La selección debe representar el servicio, no su posición accidental en el listado.
+-->
+
+---
+class: appendix
+---
+
+# Si una resolución no llega al móvil
+
+<div class="local-flow recovery-flow">
+<div><span>01</span><h2>Recuperar</h2><p>Al abrir, cargar el event-bus persistido</p></div>
+<div><span>02</span><h2>Localizar</h2><p>Identificar eventos todavía sin resolución</p></div>
+<div><span>03</span><h2>Consultar</h2><p>Pedir su estado al backend</p></div>
+<div class="highlight-step"><span>04</span><h2>Conciliar</h2><p>Reconciliar la información local</p></div>
+</div>
+
+<div class="takeaway">Se comprueba al abrir la app y al volver al primer plano</div>
+
+<!--
+Hubo un caso extraño en que las resoluciones no llegaron a un usuario. Por eso, al volver al primer plano consultamos el estado de los eventos que todavía no tienen resolución y reconciliamos la información local. Al abrir la aplicación hacemos la misma comprobación, una vez recuperado el event-bus persistido. No asumimos que la ausencia de una notificación implique que la operación no se haya ejecutado, ni empezamos aplicando otra vez las acciones: primero consultamos el estado que conoce el servidor.
+-->
+
+---
+class: appendix
+---
 
 # Un lote conserva ambas identidades
 
@@ -556,34 +634,31 @@ class: appendix
 ```
 
 <!--
-transactionId identifica el lote y eventId identifica la acción. El ejemplo original repite un eventId para varias acciones y mezcla comentarios y constantes dentro de un bloque marcado como JSON. Este ejemplo es JSON válido y contiene un solo evento para evitar sugerir que esas acciones comparten identidad. service-42 es un valor didáctico. En un lote real cada acción tiene su propio identificador. Los archivos se añaden mediante FormData, no enviando una URI local para que el backend la abra.
+transactionId identifica el lote y eventId identifica la acción y actúa como clave de idempotencia. Reenviar la misma acción conserva su eventId; una acción distinta tiene otro identificador. El lote incluye usuario, dispositivo y momento de envío. El ejemplo reduce el payload a un servicio ilustrativo. Los archivos se añaden mediante FormData; la URI local sirve para localizar el archivo en el dispositivo, no para que el backend lo abra.
 -->
 
 ---
 class: appendix
 ---
 
-<div class="command">$ appendix.guarantees</div>
+# Garantías y límites del diseño
 
-# Lo que este diseño no resuelve solo
-
-<div class="limits-list"><div><strong>Entrega repetida</strong><p>Deduplicar en el cliente no demuestra idempotencia en el servidor.</p></div><div><strong>Orden entre dispositivos</strong><p>UUIDv7 y el offset de reloj no establecen un orden global.</p></div><div><strong>Conflictos de negocio</strong><p>Un payload válido puede requerir conciliación con el estado actual.</p></div><div><strong>Procesamiento exactamente una vez</strong><p>El guion no define una garantía end-to-end de exactly-once.</p></div></div>
+<div class="limits-list"><div><strong>Idempotencia por eventId</strong><p>El backend ignora el mismo evento si ya existe con igual contenido.</p></div><div><strong>Identidad inconsistente</strong><p>Mismo eventId y distinto contenido: alarma en Slack.</p></div><div><strong>Orden entre dispositivos</strong><p>UUIDv7 y el offset de reloj no establecen un orden global.</p></div><div><strong>Conflictos de negocio</strong><p>Un payload válido puede requerir conciliación con el estado actual.</p></div></div>
 
 <!--
-Este apéndice distingue lo descrito de lo que no queda especificado. Un envío puede haber llegado aunque la respuesta se pierda. Conservar eventId ayuda a identificarlo, pero para afirmar idempotencia necesitamos conocer las reglas de deduplicación del servidor. La presentación no inventa esas reglas, ni una garantía de exactly-once. Los timestamps no resuelven orden o conflictos. Son límites de lo que podemos concluir del guion, útiles al responder preguntas técnicas.
+Un envío puede haber llegado aunque la respuesta se pierda. El eventId permite al backend reconocerlo: si ya existe con el mismo contenido, ignora el duplicado; si cambia el contenido, activa una alarma en Slack. Esta idempotencia no establece el orden entre dispositivos ni hace desaparecer los conflictos de negocio. La comparación de contenido, los timestamps y las reglas de conciliación tienen responsabilidades distintas.
 -->
 
 ---
 class: appendix
 ---
-
-<div class="command">$ appendix.checklist</div>
 
 # Las decisiones que sostienen el flujo
 
 <div class="terminal-output checklist-output">
 <div><span class="accent">[local]   </span> Persistir antes de depender de la red</div>
 <div><span class="accent">[ingesta] </span> Confirmar después de guardar la recepción</div>
+<div><span class="accent">[reenvío] </span> Mismo eventId y contenido: ignorar duplicado</div>
 <div><span class="accent">[aplicado]</span> Evento y proyección en una transacción</div>
 <div><span class="accent">[conflicto]</span> Conservar la acción y revisarla</div>
 <div><span class="accent">[usuario] </span> Mostrar pendientes y permitir corregir</div>
