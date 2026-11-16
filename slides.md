@@ -423,152 +423,79 @@ Dos endpoints para recibir y consultar eventos, y un mecanismo para comunicar su
 -->
 
 ---
+class: reception-slide
+---
+
+# Recepción de eventos
+
+<div class="reception-summary"><span>App móvil</span><span aria-hidden="true">→</span><span>Backend</span><span aria-hidden="true">→</span><code>raw_events</code></div>
+
+```json
+{
+    "transactionId": "01a1aad1-b80d-7348-8bc7-19875207892d", // id de transacción,
+    "user_id": "01a1bafb-9334-7e47-86fe-d753b3ffc1ed",
+    "device_id": "01a1bafb-9334-72e2-9ee9-644059a61746",
+    "sentTimestamp": 1793867294, // Cuándo se ha mandado el evento
+    "events": [{
+        "eventId": "01a1aad3-9e4f-7239-a286-e7ab962c8c76", // id del evento
+        "kind": SERVICE_ARRIVAL, // Qué evento es
+        "creationTimestamp": "1793867100", // Cuándo se ha creado el evento
+        "payload": {
+            "serviceId": "01a1bf98-c4da-797e-97c8-2109c2436edf"
+        },
+        "metadata": {
+            "contractVersion": "1"
+        }
+    }]
+}
+```
+
+<!--
+El endpoint de recibir es sencillo, recibe el batch enviado por la app y guarda la petición en raw_events.
+-->
+
+---
 class: ack-slide
 ---
 
 # 202 Accepted
 
 <p class="ack-definition">la petición ha sido aceptada, pero su procesamiento todavía no ha terminado.</p>
-<div class="takeaway">Si hubiese algún error, guardamos la petición en una dead-letter inbox para inspección manual.</div>
+<div class="takeaway">Si hubiese algún error: 🚨</div>
 
 <!--
-Respondemos con HTTP 202 Accepted: la petición ha sido aceptada, pero su procesamiento todavía no ha terminado. Si hubiese algún error, guardamos la petición en una dead-letter inbox para inspección manual.
+Y validamos el batch usando nuestro validador de confianza.
+Respondemos con HTTP 202 ßAccepted: la petición ha sido aceptada, pero su procesamiento todavía no ha terminado. Si hubiese algún error, aviso al Slack y para inspección manual.
 -->
 
 ---
 ---
 
-# La estructura será la siguiente:
-
-```json
-{
-    "transactionId": "01a1aad1-b80d-7348-8bc7-19875207892d", // id de transacción,
-    "user_id": "01a1bafb-9334-7e47-86fe-d753b3ffc1ed",
-    "device_id": "01a1bafb-9334-72e2-9ee9-644059a61746",
-    "sentTimestamp": 1793867294, // Cuándo se ha mandado el evento
-    "events": [
-```
-
-<!--
-La estructura será la siguiente:
-
-{
-    "transactionId": "01a1aad1-b80d-7348-8bc7-19875207892d", // id de transacción,
-    "user_id": "01a1bafb-9334-7e47-86fe-d753b3ffc1ed",
-    "device_id": "01a1bafb-9334-72e2-9ee9-644059a61746",
-    "sentTimestamp": 1793867294, // Cuándo se ha mandado el evento
-    "events": [
--->
-
----
----
-
-# SERVICE_ARRIVAL
-
-```json
-{
-    "eventId": "01a1aad3-9e4f-7239-a286-e7ab962c8c76", // id del evento
-    "kind": SERVICE_ARRIVAL, // Qué evento es
-    "creationTimestamp": "1793867100", // Cuándo se ha creado el evento
-    "payload": {
-        "serviceId": "01a1bf98-c4da-797e-97c8-2109c2436edf"
-    },
-    "metadata": {
-        "contractVersion": "1"
-    }
-},
-```
-
-<!--
-{
-            "eventId": "01a1aad3-9e4f-7239-a286-e7ab962c8c76", // id del evento
-            "kind": SERVICE_ARRIVAL, // Qué evento es
-            "creationTimestamp": "1793867100", // Cuándo se ha creado el evento
-            "payload": {
-                "serviceId": "01a1bf98-c4da-797e-97c8-2109c2436edf"
-            },
-            "metadata": {
-                "contractVersion": "1"
-            }
-        },
-        {
-            "eventId": "01a1aad3-9e4f-7239-a286-e7ab962c8c76", // id del evento
-            "kind": SERVICE_SIGNATURE_FILLED, // Qué evento es
-            "creationTimestamp": "1793867400", // Cuándo se ha creado el evento
-            "payload": {
-                "service_id": "01a1bf98-c4da-797e-97c8-2109c2436edf",
-                "uri": "file:///storage/emulated/0/logistics_app/picture.jpg"
-            }
-            "metadata": {
-                "contractVersion": "1"
-            }
-        },
-        {
-            "eventId": "01a1aad3-9e4f-7239-a286-e7ab962c8c76", // id del evento
-            "kind": LOCATION_TRACKING, // Qué evento es
-            "creationTimestamp": "1793867600", // Cuándo se ha creado el evento
-            "payload": { // data that the kind requires.
-                "latitude": -99.656900,
-                "longitude": 19.292500,
-                "height": 123,
-                "speed": 0
-            },
-            "metadata": {
-                "contractVersion": "1"
-            }
-        },
-        {
-            "eventId": "01a1aad3-9e4f-7239-a286-e7ab962c8c76", // id del evento
-            "kind": SERVICE_COMPLETED, // Qué evento es
-            "creationTimestamp": "179386603", // Cuándo se ha creado el evento
-            "payload": { // data that the kind requires.
-                "serviceId": "01a1bf98-c4da-797e-97c8-2109c2436edf",
-                "status": SERVICE_STATUS.OK,
-                "location": {
-                    "latitude": -99.656900,
-                    "longitude": 19.292500,
-                    "height": 123,
-                    "speed": 0
-                }
-            },
-            "metadata": {
-                "contractVersion": "1"
-            }
-        },
-    ]
-}
--->
-
----
----
-
-# <code>eventId</code>
+# Las cosas pueden salir mal
 
 <div class="split explanation">
 <div><div class="index">eventId</div><h2>el evento es el mismo</h2><p>lo ignoramos si fuese el caso.</p></div>
-<div><div class="index">eventId</div><h2>distinto contenido</h2><p>configuramos una alarma en Slack.</p></div>
+<div><div class="index">eventId</div><h2>distinto contenido</h2><p>Alarma en Slack.</p></div>
 </div>
 <div class="takeaway">Hasta donde pude comprobar, nunca ocurrió.</div>
 
 <!--
-Como se puede observar, tenemos `eventId`: esta es nuestra clave de idempotencia. Si hubiese ya un id en base de datos con esta clave, comprobamos si el evento es el mismo y lo ignoramos si fuese el caso. Para el caso de un mismo `eventId` con distinto contenido, configuramos una alarma en Slack. Aunque es extremadamente improbable, cosas más improbables han pasado. Hasta donde pude comprobar, nunca ocurrió.
+En las tablas que vimos antes, tenemos `eventId`: esta es nuestra clave de idempotencia. Si hubiese ya un id en base de datos con esta clave, comprobamos si el evento es el mismo y lo ignoramos si fuese el caso. Para el caso de un mismo `eventId` con distinto contenido, configuramos una alarma en Slack. Aunque es extremadamente improbable, cosas más improbables han pasado. Hasta donde pude comprobar, nunca ocurrió.
 -->
 
 ---
 ---
 
-# mandamos una respuesta
+# Respuesta
 
-<div class="index">ya sea</div>
 <div class="server-flow" style="margin-top: 35px">
-<div><h2>SSE</h2><p>a través de un canal SSE</p></div>
-<div><h2>polling</h2><p>haciendo polling</p></div>
-<div><h2>Firebase Cloud Messaging</h2><p>mi opción favorita para dispositivos móviles</p></div>
+<div><h2>SSE</h2></div>
+<div><h2>polling</h2></div>
+<div><h2>Firebase Cloud Messaging</h2><p>⭐️</p></div>
 </div>
-<div class="takeaway">todos los eventos que han sido resueltos con sus respectivas resoluciones.</div>
 
 <!--
-Una vez el evento ha sido procesado, mandamos una respuesta, ya sea a través de un canal SSE, haciendo polling o mi opción favorita para dispositivos móviles, Firebase Cloud Messaging. En esta respuesta incluimos todos los eventos que han sido resueltos con sus respectivas resoluciones. Si una petición ha fallado, mandamos junto al id del evento el mensaje de error.
+Una vez el evento ha sido procesado, mandamos una respuesta, ya sea a través de un canal SSE, haciendo polling o mi opción favorita para dispositivos móviles, Firebase Cloud Messaging. En esta respuesta incluimos todos los eventos que han sido resueltos con sus respectivas resoluciones. Si una petición ha fallado, mandamos junto al id del evento el código y mensaje de error.
 -->
 
 ---

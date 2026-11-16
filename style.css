@@ -117,3 +117,20 @@ html, body, #app { background: var(--night); }
 .projection-mapping > span { text-align: center; color: var(--quiet); }
 .projection-copy .projection-transaction { margin-top: 42px; color: var(--acid); font-size: 23px; }
 .projection-copy .support { font-size: 18px; }
+
+/* Reception precedes the asynchronous acceptance response. */
+.reception-flow { display: grid; grid-template-columns: 1fr 40px 1fr 40px 1.2fr; gap: 16px; align-items: start; margin-top: 76px; }
+.reception-node { border-top: 2px solid var(--line); padding-top: 20px; }
+.reception-node .index { margin-bottom: 22px; }
+.reception-node h2 { font-size: 27px; line-height: 1.3; }
+.reception-node > code { font-size: 15px; }
+.reception-node p { margin-top: 18px; color: var(--quiet); font-size: 18px; }
+.reception-arrow { margin-top: 63px; color: var(--acid); font-size: 38px; text-align: center; }
+
+/* Keep the complete reception example readable on slide 25. */
+.reception-slide { --slidev-code-font-size: 15px; --slidev-code-line-height: 19px; }
+.reception-slide h1 { margin-bottom: 12px; }
+.reception-summary { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; color: var(--quiet); font-size: 17px; line-height: 26px; }
+.reception-summary > span:nth-child(even) { color: var(--acid); }
+.reception-slide .shiki { padding: 12px 18px; line-height: 19px; }
+.reception-slide .shiki code { font-size: 15px; line-height: 19px; }
