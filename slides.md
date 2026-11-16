@@ -452,35 +452,21 @@ class: reception-slide
 
 <!--
 El endpoint de recibir es sencillo, recibe el batch enviado por la app y guarda la petición en raw_events.
--->
 
----
-class: ack-slide
----
-
-# 202 Accepted
-
-<p class="ack-definition">la petición ha sido aceptada, pero su procesamiento todavía no ha terminado.</p>
-<div class="takeaway">Si hubiese algún error: 🚨</div>
-
-<!--
 Y validamos el batch usando nuestro validador de confianza.
-Respondemos con HTTP 202 ßAccepted: la petición ha sido aceptada, pero su procesamiento todavía no ha terminado. Si hubiese algún error, aviso al Slack y para inspección manual.
--->
+Respondemos con HTTP 202 Accepted: la petición ha sido aceptada, pero su procesamiento todavía no ha terminado. Si hubiese algún error, aviso al Slack y para inspección manual.
 
----
----
+Como podeis ver, tenemos `eventId` esta es nuestra clave de idempotencia. Si hubiese ya un id en base de datos con esta clave, comprobamos si el evento es el mismo y lo ignoramos si fuese el caso. 
 
-# Las cosas pueden salir mal
+Para el caso de un mismo `eventId` con distinto contenido, rechazamos y configuramos una alarma en Slack. Aunque es extremadamente improbable, cosas más improbables han pasado. Hasta donde pude comprobar, nunca ocurrió.
 
-<div class="split explanation">
-<div><div class="index">eventId</div><h2>el evento es el mismo</h2><p>lo ignoramos si fuese el caso.</p></div>
-<div><div class="index">eventId</div><h2>distinto contenido</h2><p>Alarma en Slack.</p></div>
-</div>
-<div class="takeaway">Hasta donde pude comprobar, nunca ocurrió.</div>
+El `creationTimestamp` nos permite registrar cuándo ocurrió una acción. Como el reloj del dispositivo puede estar desajustado, estimamos su diferencia respecto al servidor mediante una sincronización de hora simplificada. Al abrir la app, consultamos la hora del servidor y calculamos un offset teniendo en cuenta la latencia estimada de la petición.
 
-<!--
-En las tablas que vimos antes, tenemos `eventId`: esta es nuestra clave de idempotencia. Si hubiese ya un id en base de datos con esta clave, comprobamos si el evento es el mismo y lo ignoramos si fuese el caso. Para el caso de un mismo `eventId` con distinto contenido, configuramos una alarma en Slack. Aunque es extremadamente improbable, cosas más improbables han pasado. Hasta donde pude comprobar, nunca ocurrió.
+Guardamos ese offset junto al momento de la última sincronización y lo aplicamos al crear cada evento, también cuando estamos offline. Así conservamos una estimación de cuándo ocurrió la acción, independientemente de cuándo consigamos enviarla.
+
+Este mecanismo mejora la precisión de los timestamps, pero no garantiza un orden global entre dispositivos ni resuelve por sí mismo los conflictos. Además, el reloj puede desviarse o cambiar manualmente después de sincronizarlo. En nuestra implementación no detectamos esos cambios, por lo que esta sigue siendo una limitación.
+
+Una ventaja de hacerlo de esta forma es que podemos mantener la mayoría de endpoints que ya teníamos sin reescribirlo. Simplemente necesitamos mapear un evento a su método.
 -->
 
 ---
@@ -501,38 +487,13 @@ Una vez el evento ha sido procesado, mandamos una respuesta, ya sea a través de
 ---
 ---
 
-# <code>creationTimestamp</code>
+# Consulta
 
-<div class="time-equation"><span class="accent">calculamos un offset</span></div>
-<div class="time-steps">
-<p><strong>Al abrir la app</strong><span>consultamos la hora del servidor</span></p>
-<p><strong>Guardamos ese offset</strong><span>lo aplicamos al crear cada evento, también cuando estamos offline.</span></p>
-</div>
-<div class="takeaway warning-line">no garantiza un orden global entre dispositivos ni resuelve por sí mismo los conflictos.</div>
+<p>- ¿01a1aad3-9e4f-7239-a286-e7ab962c8c76?</p>
+<p class="highlight">+ OK</p>
 
 <!--
-El `creationTimestamp` nos permite registrar cuándo ocurrió una acción. Como el reloj del dispositivo puede estar desajustado, estimamos su diferencia respecto al servidor mediante una sincronización de hora simplificada. Al abrir la app, consultamos la hora del servidor y calculamos un offset teniendo en cuenta la latencia estimada de la petición.
-
-Guardamos ese offset junto al momento de la última sincronización y lo aplicamos al crear cada evento, también cuando estamos offline. Así conservamos una estimación de cuándo ocurrió la acción, independientemente de cuándo consigamos enviarla.
-
-Este mecanismo mejora la precisión de los timestamps, pero no garantiza un orden global entre dispositivos ni resuelve por sí mismo los conflictos. Además, el reloj puede desviarse o cambiar manualmente después de sincronizarlo. En nuestra implementación no detectamos esos cambios, por lo que esta sigue siendo una limitación.
--->
-
----
----
-
-# el endpoint de consulta
-
-<div class="terminal-output compact-output">
-<div>podemos mantener la mayoría de endpoints que ya teníamos sin reescribirlo.</div>
-<div>Simplemente necesitamos mapear un evento a su método.</div>
-</div>
-<div class="takeaway">recuperar el estado de los eventos cuando el dispositivo del repartidor no ha recibido alguna resolución.</div>
-
-<!--
-Una ventaja de hacerlo de esta forma es que podemos mantener la mayoría de endpoints que ya teníamos sin reescribirlo. Simplemente necesitamos mapear un evento a su método.
-
-Por último, el endpoint de consulta permite recuperar el estado de los eventos cuando el dispositivo del repartidor no ha recibido alguna resolución.
+Por último, el endpoint de consulta permite recuperar el estado de los eventos cuando el dispositivo del repartidor no ha recibido alguna resolución en mucho tiempo. Recibe un array de ids de eventos y devuelve la respuesta de todos.
 -->
 
 ---
@@ -554,7 +515,7 @@ Así que vamos a cambiar de perspectiva. Ahora estamos repartiendo paquetes y he
 
 Pues que la entrega se debe marcar como completada y mostrarme cuál es mi siguiente destino. Todo esto debe ocurrir del tirón, con o sin cobertura.
 
-Pues vamos a tener que cambiar cómo se gestiona el estado de nuestra aplicación.
+Para conseguir esto vamos a tener que cambiar cómo se gestiona el estado de nuestra aplicación.
 
 Seguramente se ha hablado mil y una veces en el pasado sobre UI optimista, pero para refrescar la memoria esto es una idea muy sencilla: anticiparnos a la respuesta del servidor para dar feedback inmediato de que todo ha ido bien. El clásico ejemplo del botón de like: cuando pulsamos el like, inmediatamente aparece reflejado. Si algo sale mal, el cambio se revierte y veremos ese corazón vacío.
 -->
@@ -572,7 +533,7 @@ Seguramente se ha hablado mil y una veces en el pasado sobre UI optimista, pero 
 <div class="takeaway">Al iniciar la aplicación</div>
 
 <!--
-Además de dar feedback inmediato, necesitamos disponer de los datos sin conexión. Al iniciar la aplicación, comprobamos qué servicios tiene el usuario para ese día y guardamos el listado localmente. Ese listado se refresca periódicamente.
+Además de dar feedback inmediato, necesitamos disponer de los datos sin conexión. Así que al iniciar la aplicación, obtenemos la ruta y todos los servicios que contiene al completo, toda la información que se usa en la aplicación móvil relativa a los servicios se guarda localmente. Este listado puede refrescarse si recibimos un mensaje desde el servidor pidiéndonoslo cuando, por ejemplo, han añadido un nuevo servicio a nuestra ruta.
 -->
 
 ---
@@ -587,7 +548,7 @@ Además de dar feedback inmediato, necesitamos disponer de los datos sin conexi�
 <div class="takeaway">Vamos a empezar por la persistencia.</div>
 
 <!--
-Hasta ahora, ejecutábamos una acción, que ejecutaba una petición HTTP, esperábamos hasta recibir la respuesta y actualizábamos la UI. Ahora cambia el tema, cuando ejecutamos la acción le mostramos al usuario que puede continuar y ya la sincronizamos en segundo plano cuando pueda.
+Hasta ahora, ejecutábamos una acción que ejecutaba una petición HTTP, esperábamos hasta recibir la respuesta y actualizábamos la UI. Ahora cambia el tema, cuando ejecutamos la acción le mostramos al usuario que puede continuar y ya la sincronizamos en segundo plano cuando pueda.
 Sin embargo, sale un nuevo problema de esta solución: El usuario cierra la app porque en la interfaz sale como que todo ha salido bien, sin embargo, todavía no se ha mandado el evento.
 
 Por este motivo tenemos dos mecanismos: uno visual para indicar al usuario las tareas que quedan pendientes y otro para persistir localmente las acciones que ha ejecutado. Vamos a empezar por la persistencia.
@@ -596,68 +557,60 @@ Por este motivo tenemos dos mecanismos: uno visual para indicar al usuario las t
 ---
 ---
 
-# <code>SyncService</code>
-
-<div class="code-caption">El servicio tiene una superficie bastante reducida</div>
-<div class="split api-detail">
-<div><code>push()</code><p>todas las acciones que impliquen una operación de escritura que pueda ser asíncrona.</p></div>
-<div><code>readonly queue$</code><p>la cola en sí</p></div>
-</div>
-<div class="takeaway">persistir localmente todas las acciones del usuario</div>
-
-<!--
-Para poder persistir localmente todas las acciones del usuario vamos a implementar un servicio `SyncService` que contendrá nuestro event-bus y por el que pasarán todas las acciones que impliquen una operación de escritura que pueda ser asíncrona. El servicio tiene una superficie bastante reducida: el método `push()` y la cola en sí `readonly queue$`
-
-
-*Explicación diagrama queue-flow.png*
--->
-
----
----
-
-# Los productores de eventos
+# El viaje de un evento
 
 <div class="local-flow">
-<div><h2>se validan</h2><p>los campos necesarios</p></div>
-<div><h2>se crea</h2><p><code>Event</code></p></div>
-<div><h2><code>push()</code></h2><p>deduplica, valida el payload otra vez con Zod</p></div>
-<div class="highlight-step"><h2>se persiste</h2><p>para poder procesarlo.</p></div>
+<div><h2>Valida</h2><p>los campos necesarios</p></div>
+<div><h2>Crea</h2><p><code>SyncEvent < K ></code></p></div>
+<div><h2>Envía</h2><p>Al event-bus</p></div>
+<div>...</div>
 </div>
 <div class="takeaway">Los productores de eventos obtienen SyncService a través de inyección de dependencias.</div>
 
 <!--
-Los productores de eventos obtienen SyncService a través de inyección de dependencias. Cuando se ejecuta una acción, antes se validan los campos necesarios para ejecutar el evento localmente y se crea el `Event`. Se llama al método `push()` del SyncService que recibe el evento y un callback opcional, deduplica, valida el payload otra vez con Zod y lo introduce a la cola de eventos.
-Una vez en la cola, el evento se persiste para poder procesarlo.
+Cuando un productor quiere emitir un evento, tiene la responsabilidad de antes validar los datos que van a ir al evento y envolver los datos en un `SyncEvent<kind>` y se manda al SyncService, que es el servicio que contiene nuestro Event-bus.
 -->
 
 ---
 ---
 
-# Hay un listener que pausa o reanuda la cola
+# <code>SyncService</code>
 
-<div class="split explanation">
-<div><div class="index">Si no hay conexión</div><h2>la cola está pausada</h2><p>espera hasta que vuelva la conexión.</p></div>
-<div><div class="index">Hay un listener</div><h2>pausa o reanuda la cola</h2><p>según el estado de la conexión.</p></div>
+<div class="code-caption">El servicio tiene una superficie bastante reducida</div>
+<div class="api-detail">
+<div><code>readonly queue$</code></div>
+--
+<div><code>push()</code><p>todas las acciones que impliquen una operación de escritura que pueda ser asíncrona.</p></div>
 </div>
-<div class="takeaway">La cola no se encarga de comprobar la conexión.</div>
+<div class="takeaway"><code>queue$.pipe(tap(addToBatch),tap(persist),
+pauseWhenOffline(offline$))</code></div>
 
 <!--
-Si no hay conexión y la cola está pausada, espera hasta que vuelva la conexión. La cola no se encarga de comprobar la conexión. Hay un listener que pausa o reanuda la cola según el estado de la conexión.
+El evento se introduce a través del método `push()` del SyncService. Los parámetros que tenemos son el evento y un callback opcional. La responsabilidad que tiene este método es deduplicar el evento en la cola local, validar el payload otra vez con Zod y lo introduce a la cola de eventos.
+
+Nuestra cola se llama queue$. El símbolo de dólar viene por convención ya que expone un Observable. Internamente utilizamos un BehaviorSubject, que permite compartir el estado de la cola entre varios observadores. Cuando uno nuevo se suscribe, recibe inmediatamente el estado actual y, a partir de ahí, las siguientes actualizaciones.
+
+También podemos exponerlo como un Signal (y creo que es lo que hice) para eliminar esta capa de dificultad en las vistas.
+
+Por qué un Observable? Pues la respuesta es que nuestro event-bus es un flujo de datos asíncronos y esto nos da la capacidad de introducir nuestro comportamiento de una forma mucho más declarativa.
 -->
 
 ---
 ---
 
-# se agrupan los eventos encolados en un batch
+# El flujo de queue$
 
-<div class="server-flow">
-<div><h2>in-progress</h2><p>se agrupan los eventos encolados en un batch</p></div>
-<div><h2>FormData</h2><p>metemos el JSON</p><p>archivos que han de ser mandados</p></div>
-<div><h2>sending</h2><p>enviamos la petición.</p></div>
-</div>
-<div class="takeaway">reintentos, versión, id del usuario, id del dispositivo, etc</div>
+```JavaScript
+eventBus = queue$.pipe(tap(addToBatch),tap(persist),
+pauseWhenOffline(offline$))
+```
 
 <!--
+El primer ejemplo es `addToBatch(events)`
+
+El primer ejemplo es la persistencia. Nada más llegar a la cola, lo primero que hacemos es persistir este nuevo estado en la cola.
+
+Para poder persistir localmente todas las acciones del usuario debemos añadir a nuestro event-bus una capa de persistencia. Por ella pasarán todas las acciones que impliquen una operación de escritura que pueda ser asíncrona. El servicio que la contiene tiene una superficie bastante reducida: el método `push()` y la cola en sí `readonly queue$`
 Si hay conexión cambiamos en la cola el estado de los eventos a "in-progress", se agrupan los eventos encolados en un batch y se añaden los metadatos de la cola al batch (reintentos, versión, id del usuario, id del dispositivo, etc) y se mandan al handler.
 En el handler creamos un FormData y metemos el JSON y, si tenemos archivos que han de ser mandados, los metemos también. Cambiamos el estado de los eventos a "sending" y enviamos la petición.
 -->
