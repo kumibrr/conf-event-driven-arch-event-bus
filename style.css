@@ -107,3 +107,13 @@ html, body, #app { background: var(--night); }
 .slidev-layout.broker-options { display: flex; flex-direction: column; }
 .broker-logos { display: flex; align-items: center; justify-content: center; gap: 100px; flex: 1; min-height: 0; }
 .broker-logos img { display: block; flex-shrink: 0; height: auto; object-fit: contain; }
+
+/* Slide 22: preserve the complete animation alongside the projection summary. */
+.slidev-layout.projection-slide { padding: 28px 40px; }
+.projection-layout { display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 40px; align-items: center; height: 100%; }
+.projection-animation { display: block; width: auto; height: 480px; max-height: 100%; max-width: 100%; object-fit: contain; justify-self: center; }
+.projection-copy h1 { margin-bottom: 44px; }
+.projection-mapping { display: grid; grid-template-columns: max-content 24px max-content; gap: 22px 12px; align-items: center; font-size: 19px; }
+.projection-mapping > span { text-align: center; color: var(--quiet); }
+.projection-copy .projection-transaction { margin-top: 42px; color: var(--acid); font-size: 23px; }
+.projection-copy .support { font-size: 18px; }

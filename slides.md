@@ -305,12 +305,25 @@ La segunda característica es que en lugar de enviar la entidad completa modific
 <div><strong class="accent">200<span> ms</span></strong><p>se refresca si entra un nuevo evento</p></div>
 <div><strong>5<span> segundos</span></strong><p>un máximo de 5 segundos.</p></div>
 </div>
-<div class="batch-details"><span>debe dejar de intentar de mandar eventos para guardar batería</span><span>almacenará los eventos para procesarlos en segundo plano</span></div>
-<div class="takeaway">La cola debe poder pararse y ser respetuosa</div>
 
 <!--
 La tercera es hacer batching, cada petición HTTP que hacemos consume batería, así que todas estas operaciones de escritura se enviarían en batch. Damos una ventana de 200 ms que se refresca si entra un nuevo evento para mandarlas todas juntas con un máximo de 5 segundos.
-4. La cola debe poder pararse y ser respetuosa: Si el teléfono se queda sin cobertura, debe dejar de intentar de mandar eventos para guardar batería y cuando se reconecte, enviará el batch al backend, que almacenará los eventos para procesarlos en segundo plano, separando su recepción de la ejecución de la lógica de negocio.
+-->
+
+---
+---
+
+# Pausa y reconexión
+
+<div class="split explanation">
+<div><div class="index">Sin cobertura / sin conexión</div><h2>Pausar la cola</h2><p>Conservar batería</p></div>
+<div><div class="index">Conexión recuperada</div><h2>Enviar el batch</h2><p>Procesar en segundo plano</p></div>
+</div>
+
+<div class="takeaway">Recepción → persistencia → procesamiento</div>
+
+<!--
+Y ya la última es que la cola debe poder pararse y ser respetuosa con la batería: Si el teléfono se queda sin cobertura, debe dejar de intentar de mandar eventos y cuando se reconecte, enviará el batch al backend, que almacenará los eventos para procesarlos en segundo plano, separando su recepción de la ejecución de la lógica de negocio.
 -->
 
 ---
@@ -336,27 +349,33 @@ Como ya hemos dicho, las entidades más importantes son Ruta y Servicio. Para re
 
 # Cada evento tendrá como clave primaria un UUIDv7
 
-<div class="split explanation">
-<div><div class="index">UUIDv7</div><h2>generado en el frontend</h2><p>donde se origine.</p></div>
-<div><div class="index">componente temporal</div><h2>índices B-tree</h2><p>frente a identificadores completamente aleatorios.</p></div>
+<div class="uuid-breakdown" style="display: flex; justify-content: center; margin-top: 8px">
+<img src="/images/uuidv7-structure.svg?v=131f167071" alt="Estructura de un UUIDv7: timestamp, secuencia opcional, versión, variante y aleatoriedad" width="800" />
 </div>
 <div class="takeaway warning-line">Esto no garantiza un orden cronológico global ni elimina la fragmentación</div>
 
 <!--
-Cada evento tendrá como clave primaria un UUIDv7 generado en el frontend donde se origine. Su componente temporal favorece la localidad de las inserciones en los índices B-tree frente a identificadores completamente aleatorios. Esto no garantiza un orden cronológico global ni elimina la fragmentación, especialmente cuando llegan eventos creados por dispositivos que han estado offline.
+Cada evento tendrá como clave primaria un UUIDv7 generado en el frontend donde se origine. Su componente temporal favorece la localidad de las inserciones en los índices B-tree frente a identificadores completamente aleatorios. Esto no garantiza un orden cronológico global ni elimina la fragmentación, especialmente cuando llegan eventos creados por dispositivos que han estado offline, pero ayuda.
+
+Diagrama vectorial recreado a partir de la referencia. Campos y secuencia opcional: https://www.rfc-editor.org/rfc/rfc9562.html#section-5.7
 -->
 
 ---
+class: projection-slide
 ---
 
-# el historial de eventos
-
-<div class="storage-rows">
-<div><code>Route_events</code><span class="muted">historial</span><code>Route</code><span>estado actual</span></div>
-<div><code>Service_events</code><span class="muted">historial</span><code>Service</code><span>estado actual</span></div>
+<div class="projection-layout">
+<img class="projection-animation" src="/images/service-event-update.gif" alt="Se añade SERVICE_COMPLETED al historial y después Service.status cambia de pending a completed" />
+<div class="projection-copy">
+<h1>Historial y estado actual</h1>
+<div class="projection-mapping">
+<code>Route_events</code><span aria-hidden="true">→</span><code>Route</code>
+<code>Service_events</code><span aria-hidden="true">→</span><code>Service</code>
 </div>
-<div class="transaction-note">Cada vez que apliquemos un evento, guardaremos el evento y actualizaremos su proyección en la misma transacción.</div>
-<p class="support">Los frontends consultarán esas proyecciones, sin descargar ni reproducir todo el historial.</p>
+<p class="projection-transaction">Una misma transacción</p>
+<p class="support">El frontend consulta el estado actual</p>
+</div>
+</div>
 
 <!--
 A partir de ahora, el historial de eventos será nuestra fuente de verdad: podremos reconstruir el estado de cada entidad a partir de él. Tanto ese historial como las entidades se almacenan en el backend.
@@ -366,21 +385,24 @@ Los frontends consultarán esas proyecciones, sin descargar ni reproducir todo e
 -->
 
 ---
+class: projection-slide
 ---
 
-# <code>mobile_app_events</code>
-
-<div class="terminal-output">
-<div>persistir los eventos pendientes de procesamiento</div>
-<div>conservarlos si se cae el backend.</div>
-<div>introducir los eventos tal cual llegan a ella.</div>
+<div class="projection-layout">
+<img class="projection-animation" src="/images/raw-events-schema.svg" alt="Diagrama de Ruta, Servicio y sus historiales, con la tabla raw_events destacada en verde" />
+<div class="projection-copy">
+<h1><code>Tabla de persistencia</code></h1>
+<div class="terminal-output compact-output">
 </div>
-<div class="takeaway">Lo último que queremos es perder datos que el usuario ya ha mandado.</div>
+</div>
+</div>
 
 <!--
-También necesitamos persistir los eventos pendientes de procesamiento para conservarlos si se cae el backend. Lo último que queremos es perder datos que el usuario ya ha mandado. Nuestro método fue extremadamente simple y efectivo: crear una tabla o colección `mobile_app_events` y introducir los eventos tal cual llegan a ella.
+También vamos a persistir los eventos pendientes de procesamiento para conservarlos por si se cae el backend o si queremos investigar algo que ha salido mal, conservar el dato tal y como llegó. Lo último que queremos es perder datos que el usuario ya ha mandado. Nuestro método fue extremadamente simple y efectivo: crear una tabla o colección `raw_events` y introducir los eventos tal cual llegan a ella.
 
-Con solo modificar dos tablas y añadir otras tres ya teníamos preparada la persistencia necesaria.
+Con solo modificar dos tablas y añadir otras tres ya teníamos preparado el modelo de datos.
+
+Optamos por no hacer ninguna migración, simplemente incrementar la versión del schema de Route y Service. Como solo habíamos añadido datos nuevos, no hay incompatibilidad.
 -->
 
 ---
@@ -389,19 +411,15 @@ Con solo modificar dos tablas y añadir otras tres ya teníamos preparada la per
 # Implementando el backend
 
 <div class="server-flow endpoint-flow">
-<div><span>recibir</span><h2>eventos</h2><p>Recibe la petición, la mete en base de datos</p></div>
-<div><span>consultar</span><h2>eventos</h2></div>
-<div><span>un mecanismo</span><h2>comunicar</h2><p>sus resultados.</p></div>
+<div><span>recibir</span></div>
+<div><span>consultar</span></div>
+<div><span>responder</span></div>
 </div>
 
 <!--
-Implementando el backend
-
-¿Qué necesitamos?
+Para implementar el backend... ¿Qué necesitamos?
 
 Dos endpoints para recibir y consultar eventos, y un mecanismo para comunicar sus resultados.
-
-El de recibir eventos es bastante sencillo. Recibe la petición, la mete en base de datos y la guarda para ser procesada por el event-bus.
 -->
 
 ---
