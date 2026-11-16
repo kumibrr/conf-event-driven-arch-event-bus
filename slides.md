@@ -62,7 +62,7 @@ Empezaron las preguntas incómodas, porque no es que perdiésemos esos clientes 
 <div class="takeaway">La información que daba valor al producto nacía en el móvil</div>
 
 <!--
-Habíamos diseñado el producto para los directores de logística y para los repartidores. Queríamos ahorrar gestión, papeleo y decisiones repetitivas. Pero quienes debían ser promotores se habían convertido en detractores. Cuando la app era lenta, los repartidores dejaban de usarla. Si no registraban lo que pasaba, el panel perdía valor. Las dos quejas estaban relacionadas.
+Habíamos diseñado el producto para los coordinadores de logística y para los repartidores. Queríamos ahorrar gestión, papeleo y decisiones repetitivas. Pero quienes debían ser promotores se habían convertido en detractores. Cuando la app era lenta, los repartidores dejaban de usarla. Si no registraban lo que pasaba, el panel perdía valor. Las dos quejas estaban relacionadas.
 -->
 
 ---
@@ -227,7 +227,7 @@ RabbitMQ y Kafka son brutales para resolver colas de mensajería una vez el clie
 Desde mi punto de vista de main-frontend en esta feature el cliente móvil es quien manda y tiene la prioridad, así que veamos sus necesidades desde el punto de vista de la app.
 - La información debe actualizarse inmediatamente para el usuario de la app.
 - El usuario debe ser consciente de la realidad: si está operando en modo offline, cuántos eventos mandados por él están siendo aún procesados o si toda su información está al día.
-- Es posible que haya entidades que cambien desde fuera de la app móvil: los directores de ruta son capaces de alterar el orden de la ruta desde su panel de control, añadir nuevos servicios, marcar servicios como incidencia o incluso corregir datos que los usuarios de la app hayan introducido de manera errónea. Esto puede ocurrir en desorden: un evento siempre se va a procesar inmediatamente si llega desde panel, y es posible que una actualización haya ocurrido en el dispositivo móvil pero que aún no se haya procesado en el backend.
+- Es posible que haya entidades que cambien desde fuera de la app móvil: los coordinadores de ruta son capaces de alterar el orden de la ruta desde su panel de control, añadir nuevos servicios, marcar servicios como incidencia o incluso corregir datos que los usuarios de la app hayan introducido de manera errónea. Esto puede ocurrir en desorden: un evento siempre se va a procesar inmediatamente si llega desde panel, y es posible que una actualización haya ocurrido en el dispositivo móvil pero que aún no se haya procesado en el backend.
 - Se debe poder encolar la subida de archivos pesados (fotos).
 - NO DEBE PERJUDICAR EL RENDIMIENTO DE LA UI.
 -->
@@ -596,61 +596,48 @@ Por qué un Observable? Pues la respuesta es que nuestro event-bus es un flujo d
 -->
 
 ---
+class: queue-flow
 ---
 
 # El flujo de queue$
 
-```JavaScript
-eventBus = queue$.pipe(tap(addToBatch),tap(persist),
-pauseWhenOffline(offline$))
+```js
+eventBus = queue$.pipe(
+  tap(persist),
+  pauseWhenOffline(offline$),
+  map(pendingItems),
+  filter(items => items.length > 0),
+  map(createBatch),
+  tap(batch => updateStatus(batch, 'sending')),
+  concatMap(batch => sendHTTPRequest(batch).pipe(
+    tap(() => updateStatus(batch, 'processing')),
+    catchError(() => retryIndividually(batch).pipe(
+      catchError(handleSyncError)
+    ))
+  ))
+)
 ```
 
 <!--
-El primer ejemplo es `addToBatch(events)`
+Una cosa que podemos ver es que cada operador que está aquí se va a aplicar en ese orden.
 
-El primer ejemplo es la persistencia. Nada más llegar a la cola, lo primero que hacemos es persistir este nuevo estado en la cola.
+El primer ejemplo es la persistencia, cada nuevo estado se tiene que persistir y esto nos va a permitir tener ese ansiado modo offline y que funcione aunque se cierre la aplicación.
 
-Para poder persistir localmente todas las acciones del usuario debemos añadir a nuestro event-bus una capa de persistencia. Por ella pasarán todas las acciones que impliquen una operación de escritura que pueda ser asíncrona. El servicio que la contiene tiene una superficie bastante reducida: el método `push()` y la cola en sí `readonly queue$`
-Si hay conexión cambiamos en la cola el estado de los eventos a "in-progress", se agrupan los eventos encolados en un batch y se añaden los metadatos de la cola al batch (reintentos, versión, id del usuario, id del dispositivo, etc) y se mandan al handler.
+`addToBatch(events)`, que se encarga de introducir el evento que hemos metido al batch que queremos mandar, cada batch tiene metadatos útiles, como estado, fecha y hora de envío, etc. Estos metadatos solo se utilizarán aquí.
+
+Luego tenemos el primer stopper. Desde otro observable que escucha nuestra conexión a internet podemos parar la cola y que no haga las peticiones HTTP.
+
+Si hay conexión se mandan al handler.
+
 En el handler creamos un FormData y metemos el JSON y, si tenemos archivos que han de ser mandados, los metemos también. Cambiamos el estado de los eventos a "sending" y enviamos la petición.
--->
 
----
----
-
-# Si la petición falla
-
-<div class="recovery-list">
-<div><strong>Si la petición falla</strong><p>eliminamos el batch y reintentamos cada evento individual dejando un intervalo de tiempo entre reintentos.</p></div>
-<div><strong>errores HTTP que no sean 4xx</strong><p>pausamos la cola, devolvemos los eventos al estado anterior</p></div>
-<div><strong>Si son errores 400</strong><p>llamamos a un endpoint de &quot;muerte&quot; con todos los eventos para no perder el progreso</p></div>
-</div>
-
-<!--
-Si la petición falla, eliminamos el batch y reintentamos cada evento individual dejando un intervalo de tiempo entre reintentos.
+Si la petición falla, eliminamos el batch y reintentamos cada evento individual dejando un intervalo de tiempo entre reintentos. 
 
 Y si sigue fallando con errores HTTP que no sean 4xx, entonces pausamos la cola, devolvemos los eventos al estado anterior y fuera de la cola habilitamos que se compruebe la conexión al servidor periódicamente hasta que vuelva y rehabilite la cola.
 
-Si son errores 400 entonces llamamos a un endpoint de "muerte" con todos los eventos para no perder el progreso e informamos que hay problemas graves y que no puede continuar con su ruta y que verifique la página de status.
--->
+Si son errores 400 se mandan los eventos al sentry con todos los payloads para no perder información e informamos al usuario que hay problemas graves, que no puede continuar con su ruta y que verifique la página de status.
 
----
----
-
-# Una vez recibida la respuesta
-
-<div class="state-list">
-<div><code>202 Accepted</code><span>processing</span></div>
-<div><code>processing</code><span>esperamos a la respuesta del servidor.</span></div>
-<div><code>identificador</code><span>el código HTTP y un mensaje de error si corresponde.</span></div>
-<div><code>persistir el estado</code><span>ejecutamos los callbacks.</span></div>
-</div>
-<div class="takeaway">mapeamos cada resolución al evento</div>
-
-<!--
 Si todo sale bien y recibimos un 202 Accepted, volvemos a cambiar el estado de los eventos que han sido mandados a "processing" y esperamos a la respuesta del servidor. La resolución final contiene, para cada evento, su identificador, el código HTTP y un mensaje de error si corresponde.
-
-Una vez recibida la respuesta, mapeamos cada resolución al evento, volvemos a persistir el estado y ejecutamos los callbacks.
 -->
 
 ---
@@ -666,45 +653,42 @@ Una vez recibida la respuesta, mapeamos cada resolución al evento, volvemos a p
 <!--
 *Fin explicación diagrama queue-flow.png*
 
-Además de sincronizar, debemos mostrar al repartidor la cola y el estado de los eventos. En nuestro caso simplemente nos copiamos de los pop-ups de los AirPods.
+Una cosa que debemos hacer es mostrar al repartidor qué está pasando. En nuestro caso simplemente nos copiamos de los pop-ups de los AirPods.
 
-Si el usuario lo toca, mostramos un modal de tipo sheet con todos los eventos que ha subido. Los eventos que han salido mal que mostramos en la app móvil son únicamente los eventos que pueden ser remediados por el usuario. *SyncNotifications.vue*
+Si el usuario lo toca, mostramos un modal de tipo sheet con todos los eventos que ha subido y su estado. *SyncNotifications.vue*
 
-Ese pop-up se muestra en la pantalla principal, donde hay espacio, y se oculta en el resto de las pantallas. Si cambia el estado, aparece durante unos segundos con feedback háptico ligero y desaparece de nuevo. Y siempre está disponible desde el menú lateral de la app.
+Ese pop-up se muestra siempre en la pantalla principal, ya que tenemos espacio para hacerlo, y se oculta tras cinco segundos o si el usuario hace swipe en el resto de las pantallas. Si cambia el estado, aparece durante unos segundos con feedback háptico ligero y desaparece de nuevo.
 -->
 
 ---
+class: event-list-slide
 ---
 
-# los eventos que han fallado
+# Listado de eventos
 
-<div class="correction-flow">
-<div><h2>un evento fallido</h2><p>explicamos cómo resolverlo</p></div>
-<div><h2>la pantalla</h2><p>donde realizó la acción</p></div>
-<div><h2>corrija los datos</h2><p>la envíe de nuevo.</p></div>
-</div>
-<div class="takeaway">Ese listado muestra un resumen de lo ocurrido.</div>
+<img src="/images/event-list.png" alt="Listado de eventos por servicio, con una foto fallida, eventos pendientes y eventos completados" />
 
 <!--
-Ese listado muestra un resumen de lo ocurrido. Lo interesante es qué pasa con los eventos que han fallado.
-Cuando pulsa un evento fallido, explicamos cómo resolverlo y lo llevamos a la pantalla donde realizó la acción para que corrija los datos y la envíe de nuevo.
+Ese listado muestra un resumen de lo ocurrido. Ponemos por defecto un orden y vista lógico: Agrupamos por servicios y ordenamos por estado y finalmente tiempo en orden descendente. De esta forma, lo prioritario está siempre arriba del todo y lo que acaba de hacer sería lo siguiente. 
+
+ Lo interesante es qué pasa con los eventos que han fallado.
+Cuando pulsa un evento fallido, lo guiamos lo llevamos a la pantalla donde realizó la acción y lo guiamos para que corrija los datos y la envíe de nuevo.
+
+Siempre está disponible desde el menú lateral de la app, así que el usuario lo tiene fácilmente accesible.
 -->
 
 ---
+class: reconciliation-panel-slide
 ---
 
-# Esto nos lleva al panel.
+# ¿Y conflictos que no pueda resolver en la app?
 
-<div class="conflict-timeline">
-<div><div class="index">en el panel</div><h2>completado</h2><p>han marcado un servicio como completado</p></div>
-<div><div class="index">mientras el repartidor estaba offline</div><h2>una incidencia</h2><p>que el repartidor había registrado en el móvil.</p></div>
-</div>
-<div class="takeaway">Para ello tenemos una pantalla de conciliación.</div>
+<img src="/images/reconciliation-panel.png" alt="Panel de conciliación con rutas de repartidores, un servicio con una incongruencia y su registro de eventos para elegir la resolución correcta" />
 
 <!--
-Esto nos lleva al panel. Hay veces que el error es algo que el mismo repartidor no puede solucionar, por ejemplo, si en el panel han marcado un servicio como completado mientras el repartidor estaba offline y al sincronizar llega una incidencia que el repartidor había registrado en el móvil.
+Esto nos lleva al panel. Hay veces que el error es algo que el mismo repartidor no puede solucionar, por ejemplo, si en el panel han marcado un servicio como incidencia mientras el repartidor estaba offline y al sincronizar llega el servicio que el repartidor había registrado en el móvil como completado. ¿Qué pasa?
 
-Para ello tenemos una pantalla de conciliación. En ella el director de logística puede ver qué servicios tienen discrepancias y ver su información en detalle, junto a cada evento que se ha mandado, y así solventar el error.
+Para ello hicimos una pantalla de conciliación. En ella el coordinador de logística puede ver qué servicios tienen discrepancias y ver su información en detalle, junto a cada evento que se ha mandado, y poner uno como verdadero solventando así el error.
 -->
 
 ---
@@ -731,15 +715,15 @@ Entre esos avisos están los payloads malformados y los eventos con el mismo `ev
 class: statement
 ---
 
-# pidieron quedarse en la beta
+# Les gustó tanto que no querían volver atrás
 
-<div class="statement-sub">A la vez que introdujimos la cola, rediseñamos toda la aplicación, así que no podemos atribuir toda la mejora a la sincronización.</div>
+<div class="statement-sub">A la vez que introdujimos la cola, rediseñamos toda la aplicación, así que no puedo atribuir toda la mejora a la sincronización.</div>
 
 <!--
 Cierre
 
-Para terminar, obtuvimos un feedback muy bueno por parte de muchos repartidores. A la vez que introdujimos la cola, rediseñamos toda la aplicación, así que no podemos atribuir toda la mejora a la sincronización. Sin embargo, el consenso fue que se sentía instantánea y mucho más rápida que la versión anterior.
-De hecho, habilitamos unos 6 meses antes la aplicación para algunos usuarios que querían probar la beta durante un par de semanas y cuando les comentamos que ya habíamos obtenido muchos comentarios útiles y que volverían a la versión anterior automáticamente, muchísimos se quejaron y pidieron quedarse en la beta hasta que la lanzásemos.
+Para terminar, obtuvimos un feedback muy bueno por parte de muchos repartidores. A la vez que introdujimos la cola, rediseñamos toda la aplicación, así que no podemos atribuir toda la mejora a la sincronización. Muchas críticas a utilidades e interfaz. No obstante el consenso fue que se sentía instantánea y mucho más rápida que la versión anterior.
+De hecho, habilitamos unos 6 meses antes la aplicación para algunos usuarios que querían probar la beta durante un par de semanas y cuando les comentamos que ya habíamos obtenido muchos comentarios útiles y que volverían a la versión anterior automáticamente, muchísimos se quejaron y pidieron quedarse en la última versión permanentemente, así que lo hicimos. También abrimos grupos de whatsapp con ellos mismos para obtener feedback directamente.
 -->
 
 ---
@@ -796,3 +780,33 @@ P: Los eventos no llegan a un usuario
 S: Esto es extremadamente extraño, pero se dio un caso. Por ese motivo al volver al primer plano, consultamos el estado de los eventos que todavía no tienen una resolución y reconciliamos la información local.
 Si es al abrir la aplicación, esta comprobación se hace igualmente una vez recuperado el event-bus persistido.
 -->
+
+---
+class: appendix
+---
+
+# Qué pasa si estamos cinco días offline?
+
+¿Nada? Pero engancha el móvil a un hub con ethernet.
+
+<!--
+Los eventos se guardan con su timestamp, así que nada. 
+Eso sí, al día siguiente a la hora de cargar la ruta, no va a poder ya que tiene que estar online para poder cargar la ruta del día.
+-->
+
+---
+class: profile-closing
+---
+
+<div class="closing-profile">
+<img class="closing-avatar" src="/images/kumibrr-profile.png" alt="Imagen de perfil de kumibrr" />
+<h1>Israel de la<br>Barrera</h1>
+<div class="closing-contact">
+<a class="closing-qr" href="https://twitter.com/kumibrr" target="_blank" rel="noopener noreferrer" aria-label="Abrir el perfil de Twitter de kumibrr"><img src="/images/kumibrr-twitter-qr.png" alt="Código QR del perfil de Twitter de kumibrr" /></a>
+<a class="closing-twitter" href="https://twitter.com/kumibrr" target="_blank" rel="noopener noreferrer"><span>twitter</span>@kumibrr</a>
+</div>
+</div>
+
+<section class="app-announcement" aria-label="Whim, notas de voz para iPhone y Apple Watch">
+<a class="app-landing" href="https://whimnotes.app" target="_blank" rel="noopener noreferrer"><img src="/images/whim-promo.jpg" alt="Whim: Speak. Keep moving. Notas de voz para iPhone y Apple Watch" /></a>
+</section>

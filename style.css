@@ -33,6 +33,19 @@ html, body, #app { background: var(--night); }
 .slidev-layout .shiki { padding: 21px 25px; border: 1px solid var(--line); border-radius: 2px; }
 .slidev-layout .slidev-code-wrapper { margin: 0; }
 .slidev-layout .shiki code { font-size: 17px; line-height: 1.65; letter-spacing: -.025em; }
+.slidev-layout.queue-flow .shiki { padding: 16px 20px; background: #18251e !important; line-height: 22px; }
+.queue-flow .shiki code { font-size: 16px; line-height: 22px; }
+.queue-flow .syntax-function { color: #8bd5ca !important; }
+.queue-flow .syntax-string { color: var(--warning) !important; }
+.queue-flow .syntax-keyword { color: var(--acid) !important; }
+.queue-flow .syntax-number { color: #f2cb83 !important; }
+.queue-flow .syntax-parameter { color: #bad6ed !important; }
+.slidev-layout.event-list-slide { display: flex; flex-direction: column; align-items: stretch; padding: 52px 58px 24px; }
+.event-list-slide h1 { flex-shrink: 0; margin-bottom: 20px; }
+.event-list-slide img { display: block; align-self: center; height: 410px; max-width: 100%; object-fit: contain; }
+.slidev-layout.reconciliation-panel-slide { padding: 52px 58px 24px; }
+.reconciliation-panel-slide h1 { font-size: 30px; margin-bottom: 12px; }
+.reconciliation-panel-slide img { display: block; height: 428px; max-width: 100%; margin: 0 auto; object-fit: contain; }
 .accent { color: var(--acid); }
 .muted { color: var(--quiet); }
 .warning-text { color: var(--warning); }
@@ -134,3 +147,13 @@ html, body, #app { background: var(--night); }
 .reception-summary > span:nth-child(even) { color: var(--acid); }
 .reception-slide .shiki { padding: 12px 18px; line-height: 19px; }
 .reception-slide .shiki code { font-size: 15px; line-height: 19px; }
+
+.slidev-layout.profile-closing { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 24px; align-items: center; padding-left: 36px; padding-right: 36px; }
+.closing-avatar { display: block; width: 136px; height: 136px; object-fit: cover; border-radius: 50%; }
+.closing-profile h1 { margin: 24px 0 20px; font-size: 40px; line-height: 1.15; }
+.closing-contact { display: flex; align-items: center; gap: 20px; }
+.closing-qr, .app-landing { display: block; flex-shrink: 0; border: 0 !important; }
+.closing-qr img { display: block; width: 128px; height: 128px; }
+.closing-twitter { display: flex; flex-direction: column; gap: 6px; width: fit-content; color: var(--acid); font-size: 26px; text-decoration: none; border: 0; }
+.closing-twitter span { color: var(--quiet); font-size: 16px; }
+.app-landing img { display: block; width: 100%; height: auto; }
