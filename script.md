@@ -59,7 +59,7 @@ Estaba claro que algo tenía que cambiar. Así que, como buenos ingenieros, mira
 
 Pues no.
 
-RabbitMQ y Kafka son brutales para resolver colas de mensajería una vez el cliente ha mandado esta información al backend, sin embargo no podemos fiarnos de que esa conexión no sea interrumpida, por lo que necesitamos una solución en ambos extremos: En la app móvil, para que en caso de que la conexión se vea interrumpida, el usuario pueda continuar usando su app móvil. Y en el backend que, en el caso de que se caiga de forma generalizada, no se vea totalmente abrumada por las peticiones de sincronización desde todos los clientes.
+RabbitMQ y Kafka son brutales para desacoplar sistemas y distribuir y procesar eventos una vez el cliente ha mandado esta información al backend, sin embargo el problema lo tenemos antes, ya que no podemos fiarnos de que esa conexión no sea interrumpida, necesitamos una solución en ambos extremos: En la app móvil, para que en caso de que la conexión se vea interrumpida el usuario pueda continuar usando su app móvil. Y en el backend que, en el caso de que se caiga de forma generalizada, no se vea totalmente abrumada por las peticiones de sincronización desde todos los clientes.
 
 Desde mi punto de vista de main-frontend en esta feature el cliente móvil es quien manda y tiene la prioridad, así que veamos sus necesidades desde el punto de vista de la app.
 - La información debe actualizarse inmediatamente para el usuario de la app.
@@ -281,3 +281,8 @@ P: Los eventos no llegan a un usuario
 
 S: Esto es extremadamente extraño, pero se dio un caso. Por ese motivo al volver al primer plano, consultamos el estado de los eventos que todavía no tienen una resolución y reconciliamos la información local.
 Si es al abrir la aplicación, esta comprobación se hace igualmente una vez recuperado el event-bus persistido.
+
+
+P: Cuántos eventos puede ingestar el backend?
+
+S: Esto es una información extremadamente útil y valiosa, cuando se implementó en el backend hice un stress test y los datos arrojaban que estabamos muy por debajo de los límites.

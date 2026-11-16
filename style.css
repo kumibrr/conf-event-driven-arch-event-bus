@@ -102,3 +102,8 @@ html, body, #app { background: var(--night); }
 .resolution-flow { margin-top: 54px; }
 .recovery-flow { margin-top: 45px; }
 .checklist-output { gap: 19px; }
+
+/* Slide 10: tools without repeating the speaker notes. */
+.slidev-layout.broker-options { display: flex; flex-direction: column; }
+.broker-logos { display: flex; align-items: center; justify-content: center; gap: 100px; flex: 1; min-height: 0; }
+.broker-logos img { display: block; flex-shrink: 0; height: auto; object-fit: contain; }
