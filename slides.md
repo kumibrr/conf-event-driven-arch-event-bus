@@ -30,7 +30,9 @@ mdc: false
 <div class="cover-bottom">Un caso real de arquitectura orientada a eventos</div>
 
 <!--
- La charla sigue nuestro razonamiento a la hora de implementarla para solucionar frustraciones que nuestros clientes tenían. No estoy dando una receta universal de infraestructura. Es un caso concreto de una aplicación de reparto. 
+- Solucionar frustraciones, no es una guía.
+-----------
+La charla sigue nuestro razonamiento a la hora de implementarla para solucionar frustraciones que nuestros clientes tenían. No estoy dando una receta universal de infraestructura. Es un caso concreto de una aplicación de reparto. 
  
  Esta historia empieza en una startup con cinco años que había vivido el pico de la promoción de la digitalización.
 -->
@@ -44,12 +46,14 @@ class: statement
 <div class="statement-sub">Algunos acababan rechazando la digitalización de su logística</div>
 
 <!--
+- Churn incrementando
+- Rechazaban digitalización
+---------
 Tras la cresta de la ola empezó a surgir un problema: el churn.
 
 Empezaron las preguntas incómodas, porque no es que perdiésemos esos clientes por la competencia: el nivel de frustración del usuario era extremo, tanto que algunos directamente rechazaban la digitalización de su logística.
 -->
 
----
 ---
 
 # Dos perfiles, el mismo problema
@@ -62,10 +66,16 @@ Empezaron las preguntas incómodas, porque no es que perdiésemos esos clientes 
 <div class="takeaway">La información que daba valor al producto nacía en el móvil</div>
 
 <!--
+Objetivos producto:
+- Coordinadores se levantasen más tarde y se fuesen a casa antes
+- Repartidores no tuviesen líos en sus rutas.
+
+Hechos:
+- App lenta: repartidores dejaban de usarla, no dejaban registro
+------------
 Habíamos diseñado el producto para los coordinadores de logística y para los repartidores. Queríamos ahorrar gestión, papeleo y decisiones repetitivas. Pero quienes debían ser promotores se habían convertido en detractores. Cuando la app era lenta, los repartidores dejaban de usarla. Si no registraban lo que pasaba, el panel perdía valor. Las dos quejas estaban relacionadas.
 -->
 
----
 ---
 
 # Habíamos perdido el mapa del producto
@@ -80,6 +90,13 @@ Habíamos diseñado el producto para los coordinadores de logística y para los 
 <div class="takeaway">No conocíamos bien el producto que habíamos construido</div>
 
 <!--
+Adaptar producto a clientes
++ fragilidad
++ feature-flag hell
+
+Reparto de flags e investigación
+
+--------------
 Las concesiones iniciales tenían sentido: adaptar el producto a grandes clientes ayudó a arrancar. Sin embargo al crecer las combinaciones de módulos y ajustes hicieron el producto frágil y las flags ni siquiera describían el comportamiento real. Nos repartimos su investigación para reconstruir un árbol de dependencias y decidir cómo queríamos que funcionase la aplicación.
 -->
 
@@ -92,10 +109,15 @@ class: statement
 <div class="statement-sub">Menos formas de hackear el producto.<br>Menos fricción al registrar cada entrega.</div>
 
 <!--
+No conocíamos el producto
+Usuarios lo hackeaban
++ Simplificar
++ Eliminar
++ Estabilidad
+------------
 Llegamos a conclusión de que no conocíamos el producto, que era frágil y que cada persona lo hacía funcionar a su manera. Simplificar significaba construir funcionalidades sobre piezas fiables. Los repartidores eran la base del sistema: ellos registraban la información. Hacer su trabajo más fácil mejoraba el producto para todos.
 -->
 
----
 ---
 
 # La app ya estaba en obras
@@ -109,10 +131,16 @@ Llegamos a conclusión de que no conocíamos el producto, que era frágil y que 
 <p class="support">Rediseñamos la app. Aquí nos centramos en completar entregas sin una buena conexión.</p>
 
 <!--
+- Timing
+- Contexto en implementación, problemas y limitaciones.
+- Añadimos rediseño
+
+Ahora nos centramos en completar entregas sin depender de una buena conexión
+
+----------------
 En ese momento yo estaba actualizando la aplicación móvil de Angular 7 a Angular 20, de Cordova a Capacitor 7 y de Ionic 3 a Ionic 7. Esa migración me había dado bastante contexto sobre los problemas en la app móvil. Investigamos el funcionamiento del producto completo y ese conocimiento dio paso al rediseño de la aplicación desde cero. De todos los problemas que resolvimos, aquí nos centramos en uno: completar una entrega dependía de tener una buena conexión.
 -->
 
----
 ---
 
 # Ruta y servicio
@@ -126,6 +154,17 @@ En ese momento yo estaba actualizando la aplicación móvil de Angular 7 a Angul
 <p class="support">Un servicio puede volver a otra ruta si no se entrega el primer día.</p>
 
 <!--
+- panel
+- app
+- backend
+
+Servicios se introducían por excel o API
+Panel crea ruta
+Backend auto-asigna y optimiza
+
+N:N
+
+-----------
 El sistema tenía tres piezas: panel, app y backend. Los servicios se introducían manualmente, por Excel o por API. Se creaban rutas y el backend asignaba servicios. Ruta y Servicio concentran gran parte de la lógica de negocio del móvil. Su relación es N:N, porque una entrega fallida podía reaparecer en una ruta posterior.
 -->
 
@@ -162,6 +201,11 @@ class: number-slide
 <div class="takeaway">El usuario cierra la app durante la subida: 💀</div>
 
 <!--
+- Por qué solo una entrega?
+
+Si cierra de multitarea moría: motivo de inconsistencias en panel
+
+--------------
 Si el repartidor no tiene cobertura se guardaba la última entrega en una variable y esperábamos. Si la conexión no volvía, no se podía completar la siguiente. Esto ocurría en sótanos, almacenes o lugares remotos. Con poca cobertura, una foto podía mantener la pantalla de carga durante mucho tiempo. 
 
 Si el usuario cerraba la app desde la multitarea, se perdía el progreso. Ese comportamiento explicaba parte de las inconsistencias del panel.
@@ -197,7 +241,6 @@ Pues no.
 -->
 
 ---
----
 
 # una solución en ambos extremos
 
@@ -209,10 +252,16 @@ Pues no.
 <div class="takeaway warning-line">no podemos fiarnos de que esa conexión no sea interrumpida</div>
 
 <!--
+- Geniales una vez la info ya está en backend
+- Solución en dos extremos
+- App movil pueda continuar offline
+- En caso de que back se caiga, no se abrume con todos los moviles sincronizando.
+
+
+------------
 RabbitMQ y Kafka son brutales para resolver colas de mensajería una vez el cliente ha mandado esta información al backend, sin embargo no podemos fiarnos de que esa conexión no sea interrumpida, por lo que necesitamos una solución en ambos extremos: En la app móvil, para que en caso de que la conexión se vea interrumpida, el usuario pueda continuar usando su app móvil. Y en el backend que, en el caso de que se caiga de forma generalizada, no se vea totalmente abrumada por las peticiones de sincronización desde todos los clientes.
 -->
 
----
 ---
 
 # el cliente móvil es quien manda
@@ -229,7 +278,7 @@ Desde mi punto de vista de main-frontend en esta feature el cliente móvil es qu
 - El usuario debe ser consciente de la realidad: si está operando en modo offline, cuántos eventos mandados por él están siendo aún procesados o si toda su información está al día.
 - Es posible que haya entidades que cambien desde fuera de la app móvil: los coordinadores de ruta son capaces de alterar el orden de la ruta desde su panel de control, añadir nuevos servicios, marcar servicios como incidencia o incluso corregir datos que los usuarios de la app hayan introducido de manera errónea. Esto puede ocurrir en desorden: un evento siempre se va a procesar inmediatamente si llega desde panel, y es posible que una actualización haya ocurrido en el dispositivo móvil pero que aún no se haya procesado en el backend.
 - Se debe poder encolar la subida de archivos pesados (fotos).
-- NO DEBE PERJUDICAR EL RENDIMIENTO DE LA UI.
+- Debe ser RÁPIDA. MUY RÁPIDA
 -->
 
 ---
@@ -251,19 +300,21 @@ Desde mi punto de vista de main-frontend en esta feature el cliente móvil es qu
 -->
 
 ---
----
 
 # Sin Kafka, sin RabbitMQ
 
-
 <!--
+- Broker complica infra
+- Equipo sin experiencia en herramientes
+- Monolito
+- Velocidad
+-------------
 Al final descartamos RabbitMQ y Kafka. Aumentaban significativamente la complejidad de nuestra infraestructura, el equipo jamás había trabajado con estas herramientas y en lugar de acelerarnos en ese momento, nos hubiese frenado. Además, era totalmente estúpido, ya que nuestro backend es monolítico. 
 Ya la última razón es simplemente que el número de usuarios no es grande y nuestro humilde setup podía con la carga que le pedíamos sobre el papel, luego vemos en la práctica.
 
 Así que nos decidimos a implementar nosotros mismos un event-bus.
 -->
 
----
 ---
 
 # Validación
@@ -276,12 +327,20 @@ Así que nos decidimos a implementar nosotros mismos un event-bus.
 <div class="takeaway">Compartir contrato reduce divergencias de validación, pero no elimina los conflictos que pueden aparecer al sincronizar acciones realizadas offline.</div>
 
 <!--
+- El sistema de event-bus son dos event-bus
+- Validación es esencial.
+- Front: feedback inmediato al usuario para corregir antes de mandar.
+- Back: procesado es asíncrono. Damos feedback antes.
+- Contrato común con OpenAPI
+- Verificación versión de contrato en CI
+
+---------------
 Una característica gorda de este event-bus es que es cross-application. El event-bus se compone de dos event-buses. Uno en la app (lo que tiene soportar offline), y otro en el backend.
 Por este motivo una cosa crucial es validar el payload antes de que salga de la app, y una vez ha llegado al back.
 
 En el front validamos para dar feedback inmediato al usuario, si hay algo que deba solucionar se lo hacemos saber para que lo solucione. Volvemos a validar en el backend en el momento que recibimos la petición. Ambos usan validaciones basadas en un contrato común definido con OpenAPI: Zod en frontend y Jakarta Validation en backend. 
 
-Una detalle adicional es que en CI comprobamos que los paquetes utilicen la misma versión del contrato para reducir divergencias e incompatibilidades. 
+Una detalle adicional es que en CI comprobamos que los paquetes utilicen la misma versión del contrato para reducir divergencias e incompatibilidades.
 -->
 
 ---
@@ -345,7 +404,6 @@ Como ya hemos dicho, las entidades más importantes son Ruta y Servicio. Para re
 -->
 
 ---
----
 
 # Cada evento tendrá como clave primaria un UUIDv7
 
@@ -355,6 +413,12 @@ Como ya hemos dicho, las entidades más importantes son Ruta y Servicio. Para re
 <div class="takeaway warning-line">Esto no garantiza un orden cronológico global ni elimina la fragmentación</div>
 
 <!--
+- UUID v7 generado en el frontend
+- Mejora la localidad en indices por como funcionan los B-trees
+- No garantiza orden cronológico
+- No elimina fragmentación
+
+-----------------
 Cada evento tendrá como clave primaria un UUIDv7 generado en el frontend donde se origine. Su componente temporal favorece la localidad de las inserciones en los índices B-tree frente a identificadores completamente aleatorios. Esto no garantiza un orden cronológico global ni elimina la fragmentación, especialmente cuando llegan eventos creados por dispositivos que han estado offline, pero ayuda.
 
 Diagrama vectorial recreado a partir de la referencia. Campos y secuencia opcional: https://www.rfc-editor.org/rfc/rfc9562.html#section-5.7
@@ -378,7 +442,13 @@ class: projection-slide
 </div>
 
 <!--
-A partir de ahora, el historial de eventos será nuestra fuente de verdad: podremos reconstruir el estado de cada entidad a partir de él. Tanto ese historial como las entidades se almacenan en el backend.
+- Log de eventos es fuente de la verdad
+- reconstrucción de entidad de él
+- Mantenemos antiguas entidades, ahora son proyecciones
+- Mejora la lectura.
+
+------------------
+A partir de ahora, el historial de eventos será nuestra fuente de verdad: podremos reconstruir el estado de cada entidad a partir de él. Tanto ese historial como las entidades se almacenan.
 Para evitar reconstruir las entidades en cada lectura, mantendremos una proyección de su estado actual en `Route` y `Service`. Cada vez que apliquemos un evento, guardaremos el evento y actualizaremos su proyección en la misma transacción.
 
 Los frontends consultarán esas proyecciones, sin descargar ni reproducir todo el historial. Así también evitamos cargar de trabajo a los móviles, que pueden ser auténticos patatófonos. El historial solo se consultará desde el panel cuando sea necesario revisar una discrepancia.
@@ -470,7 +540,6 @@ Una ventaja de hacerlo de esta forma es que podemos mantener la mayoría de endp
 -->
 
 ---
----
 
 # Respuesta
 
@@ -481,7 +550,9 @@ Una ventaja de hacerlo de esta forma es que podemos mantener la mayoría de endp
 </div>
 
 <!--
-Una vez el evento ha sido procesado, mandamos una respuesta, ya sea a través de un canal SSE, haciendo polling o mi opción favorita para dispositivos móviles, Firebase Cloud Messaging. En esta respuesta incluimos todos los eventos que han sido resueltos con sus respectivas resoluciones. Si una petición ha fallado, mandamos junto al id del evento el código y mensaje de error.
+Una vez el evento ha sido procesado, mandamos una respuesta, ya sea a través de un canal SSE, haciendo polling o mi opción favorita para dispositivos móviles, Firebase Cloud Messaging. 
+
+En esta respuesta incluimos todos los eventos que han sido resueltos con sus respectivas resoluciones. Si una petición ha fallado, mandamos junto al id del evento el código y mensaje de error.
 -->
 
 ---
@@ -521,7 +592,6 @@ Seguramente se ha hablado mil y una veces en el pasado sobre UI optimista, pero 
 -->
 
 ---
----
 
 # disponer de los datos sin conexión
 
@@ -533,10 +603,13 @@ Seguramente se ha hablado mil y una veces en el pasado sobre UI optimista, pero 
 <div class="takeaway">Al iniciar la aplicación</div>
 
 <!--
-Además de dar feedback inmediato, necesitamos disponer de los datos sin conexión. Así que al iniciar la aplicación, obtenemos la ruta y todos los servicios que contiene al completo, toda la información que se usa en la aplicación móvil relativa a los servicios se guarda localmente. Este listado puede refrescarse si recibimos un mensaje desde el servidor pidiéndonoslo cuando, por ejemplo, han añadido un nuevo servicio a nuestra ruta.
+Además de dar feedback inmediato, necesitamos disponer de los datos sin conexión. 
+
+Así que al iniciar la aplicación, obtenemos la ruta y todos los servicios que contiene al completo, toda la información que se usa en la aplicación móvil relativa a los servicios se guarda localmente. 
+
+Este listado puede refrescarse si recibimos un mensaje desde el servidor pidiéndonoslo cuando, por ejemplo, han añadido un nuevo servicio a nuestra ruta.
 -->
 
----
 ---
 
 # dos mecanismos
@@ -548,10 +621,14 @@ Además de dar feedback inmediato, necesitamos disponer de los datos sin conexi�
 <div class="takeaway">Vamos a empezar por la persistencia.</div>
 
 <!--
-Hasta ahora, ejecutábamos una acción que ejecutaba una petición HTTP, esperábamos hasta recibir la respuesta y actualizábamos la UI. Ahora cambia el tema, cuando ejecutamos la acción le mostramos al usuario que puede continuar y ya la sincronizamos en segundo plano cuando pueda.
+Hasta ahora, ejecutábamos una acción que ejecutaba una petición HTTP, esperábamos hasta recibir la respuesta y actualizábamos la UI. 
+
+Ahora cambia el tema, cuando ejecutamos la acción le mostramos al usuario que puede continuar y ya la sincronizamos en segundo plano cuando pueda.
 Sin embargo, sale un nuevo problema de esta solución: El usuario cierra la app porque en la interfaz sale como que todo ha salido bien, sin embargo, todavía no se ha mandado el evento.
 
-Por este motivo tenemos dos mecanismos: uno visual para indicar al usuario las tareas que quedan pendientes y otro para persistir localmente las acciones que ha ejecutado. Vamos a empezar por la persistencia.
+Por este motivo tenemos dos mecanismos: uno visual para indicar al usuario las tareas que quedan pendientes y otro para persistir localmente las acciones que ha ejecutado. 
+
+Vamos a empezar por la persistencia.
 -->
 
 ---
@@ -641,7 +718,6 @@ Si todo sale bien y recibimos un 202 Accepted, volvemos a cambiar el estado de l
 -->
 
 ---
----
 
 # la cola y el estado de los eventos
 
@@ -655,7 +731,7 @@ Si todo sale bien y recibimos un 202 Accepted, volvemos a cambiar el estado de l
 
 Una cosa que debemos hacer es mostrar al repartidor qué está pasando. En nuestro caso simplemente nos copiamos de los pop-ups de los AirPods.
 
-Si el usuario lo toca, mostramos un modal de tipo sheet con todos los eventos que ha subido y su estado. *SyncNotifications.vue*
+Si el usuario lo toca, mostramos un modal con todos los eventos que ha subido y su estado. *SyncNotifications.vue*
 
 Ese pop-up se muestra siempre en la pantalla principal, ya que tenemos espacio para hacerlo, y se oculta tras cinco segundos o si el usuario hace swipe en el resto de las pantallas. Si cambia el estado, aparece durante unos segundos con feedback háptico ligero y desaparece de nuevo.
 -->
@@ -723,6 +799,7 @@ class: statement
 Cierre
 
 Para terminar, obtuvimos un feedback muy bueno por parte de muchos repartidores. A la vez que introdujimos la cola, rediseñamos toda la aplicación, así que no podemos atribuir toda la mejora a la sincronización. Muchas críticas a utilidades e interfaz. No obstante el consenso fue que se sentía instantánea y mucho más rápida que la versión anterior.
+
 De hecho, habilitamos unos 6 meses antes la aplicación para algunos usuarios que querían probar la beta durante un par de semanas y cuando les comentamos que ya habíamos obtenido muchos comentarios útiles y que volverían a la versión anterior automáticamente, muchísimos se quejaron y pidieron quedarse en la última versión permanentemente, así que lo hicimos. También abrimos grupos de whatsapp con ellos mismos para obtener feedback directamente.
 -->
 
